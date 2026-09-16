@@ -66,6 +66,26 @@ export type GitHubRepositoryPageResponse = {
   rateLimitResetAt: string
 }
 
+export type HistoryPeriod = 'DAYS_30' | 'DAYS_90' | 'MONTHS_6' | 'ALL'
+
+export type FileChurnResponse = {
+  filePath: string
+  language: string
+  commitCount: number
+  additions: number
+  deletions: number
+  uniqueContributors: number
+  lastModifiedAt: string
+  totalChurn: number
+}
+
+export type CodeChurnRankingResponse = {
+  period: HistoryPeriod
+  analysisId: string | null
+  analyzedAt: string | null
+  files: FileChurnResponse[]
+}
+
 export type GitHubUserResponse = {
   configured: boolean
   connected: boolean

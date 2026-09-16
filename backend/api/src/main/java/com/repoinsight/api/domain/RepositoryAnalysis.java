@@ -40,6 +40,9 @@ public class RepositoryAnalysis {
 	@Column(name = "analyzed_at")
 	private Instant analyzedAt;
 
+	@Column(name = "history_included", nullable = false)
+	private boolean historyIncluded;
+
 	protected RepositoryAnalysis() {
 	}
 
@@ -55,4 +58,5 @@ public class RepositoryAnalysis {
 	public Double getHealthScore() { return healthScore; }
 	public Instant getCreatedAt() { return createdAt; }
 	public Instant getAnalyzedAt() { return analyzedAt; }
+	public boolean isHistoryIncluded() { return historyIncluded; }
 }

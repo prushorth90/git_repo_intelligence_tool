@@ -76,7 +76,7 @@ public class SourceTreeAnalyzer {
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
 			if (!attributes.isRegularFile() || attributes.size() > MAX_ANALYZED_FILE_BYTES
-					|| Files.isSymbolicLink(file) || isGenerated(file)) return FileVisitResult.CONTINUE;
+					|| Files.isSymbolicLink(file) || isGeneratedName(file.getFileName().toString())) return FileVisitResult.CONTINUE;
 			String extension = extension(file);
 			if (BINARY_EXTENSIONS.contains(extension) || isBinary(file)) return FileVisitResult.CONTINUE;
 			sizeBytes += attributes.size();
@@ -94,8 +94,24 @@ public class SourceTreeAnalyzer {
 		}
 	}
 
-	private static boolean isGenerated(Path file) {
-		String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
+	static boolean isRelevantSourcePath(String relativePath) {
+		String normalized = relativePath.replace('\\', '/');
+		String[] parts = normalized.split("/");
+		for (int index = 0; index < parts.length - 1; index++) {
+			if (IGNORED_DIRECTORIES.contains(parts[index].toLowerCase(Locale.ROOT))) return false;
+		}
+		String fileName = parts[parts.length - 1];
+		String extension = extension(Path.of(fileName));
+		return !isGeneratedName(fileName) && !BINARY_EXTENSIONS.contains(extension) && LANGUAGES.containsKey(extension);
+	}
+
+	static String languageForPath(String relativePath) {
+		String normalized = relativePath.replace('\\', '/');
+		return LANGUAGES.get(extension(Path.of(normalized).getFileName()));
+	}
+
+	private static boolean isGeneratedName(String fileName) {
+		String name = fileName.toLowerCase(Locale.ROOT);
 		return name.endsWith(".min.js") || name.endsWith(".min.css") || name.endsWith(".map")
 				|| name.endsWith(".lock") || name.endsWith("-lock.json");
 	}

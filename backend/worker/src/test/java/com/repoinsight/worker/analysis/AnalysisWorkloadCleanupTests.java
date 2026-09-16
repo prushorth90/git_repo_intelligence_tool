@@ -41,7 +41,7 @@ class AnalysisWorkloadCleanupTests {
 		SourceTreeAnalyzer analyzer = mock(SourceTreeAnalyzer.class);
 		when(analyzer.analyze(checkoutRoot)).thenThrow(new IllegalStateException("scan failed"));
 		AnalysisWorkload workload = new AnalysisWorkload(
-				jdbcTemplate, cloner, analyzer, new WorkerAccessTokenCipher(""), null);
+				jdbcTemplate, cloner, analyzer, mock(GitHistoryAnalyzer.class), new WorkerAccessTokenCipher(""), null);
 
 		assertThatThrownBy(() -> workload.analyze(jobId, (id, progress) -> { }, id -> false))
 				.isInstanceOf(IllegalStateException.class)

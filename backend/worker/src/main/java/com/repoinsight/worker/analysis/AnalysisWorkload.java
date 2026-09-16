@@ -1,6 +1,9 @@
 package com.repoinsight.worker.analysis;
 
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.sql.Timestamp;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
@@ -16,6 +19,7 @@ public class AnalysisWorkload {
 	private final JdbcTemplate jdbcTemplate;
 	private final SecureRepositoryCloner repositoryCloner;
 	private final SourceTreeAnalyzer sourceTreeAnalyzer;
+	private final GitHistoryAnalyzer gitHistoryAnalyzer;
 	private final WorkerAccessTokenCipher tokenCipher;
 	private final ObjectMapper objectMapper;
 
@@ -23,11 +27,13 @@ public class AnalysisWorkload {
 			JdbcTemplate jdbcTemplate,
 			SecureRepositoryCloner repositoryCloner,
 			SourceTreeAnalyzer sourceTreeAnalyzer,
+			GitHistoryAnalyzer gitHistoryAnalyzer,
 			WorkerAccessTokenCipher tokenCipher,
 			ObjectMapper objectMapper) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.repositoryCloner = repositoryCloner;
 		this.sourceTreeAnalyzer = sourceTreeAnalyzer;
+		this.gitHistoryAnalyzer = gitHistoryAnalyzer;
 		this.tokenCipher = tokenCipher;
 		this.objectMapper = objectMapper;
 	}
@@ -44,8 +50,14 @@ public class AnalysisWorkload {
 			progress.accept(jobId, 40);
 			SourceAnalysisResult result = sourceTreeAnalyzer.analyze(checkout.directory());
 			checkCancelled(jobId, cancelled);
+			progress.accept(jobId, 55);
+			GitHistoryAnalysisResult history = context.includeHistory()
+					? gitHistoryAnalyzer.analyze(checkout.directory(), jobId, cancelled)
+					: GitHistoryAnalysisResult.empty();
+			checkCancelled(jobId, cancelled);
 			progress.accept(jobId, 85);
-			persistResult(jobId, context, result);
+			UUID analysisId = persistResult(jobId, context, result);
+			persistHistoryMetrics(analysisId, history);
 			progress.accept(jobId, 95);
 		}
 	}
@@ -66,8 +78,9 @@ public class AnalysisWorkload {
 				row.getString("encrypted_access_token")), jobId);
 	}
 
-	private void persistResult(UUID jobId, JobContext context, SourceAnalysisResult result) {
+	private UUID persistResult(UUID jobId, JobContext context, SourceAnalysisResult result) {
 		try {
+			UUID proposedAnalysisId = UUID.randomUUID();
 			jdbcTemplate.update("""
 					INSERT INTO repository_analyses (
 					    id, repository_id, analysis_job_id, status, created_at, analyzed_at,
@@ -83,13 +96,31 @@ public class AnalysisWorkload {
 					    file_extensions = EXCLUDED.file_extensions,
 					    history_included = EXCLUDED.history_included
 					""",
-					UUID.randomUUID(), context.repositoryId(), jobId, result.sourceFileCount(),
+					proposedAnalysisId, context.repositoryId(), jobId, result.sourceFileCount(),
 					result.repositorySizeBytes(), objectMapper.writeValueAsString(result.languageDistribution()),
 					objectMapper.writeValueAsString(result.directoryStructure()),
 					objectMapper.writeValueAsString(result.fileExtensions()), context.includeHistory());
+			return jdbcTemplate.queryForObject(
+					"SELECT id FROM repository_analyses WHERE analysis_job_id = ?", UUID.class, jobId);
 		} catch (JacksonException exception) {
 			throw new IllegalStateException("Repository analysis result serialization failed.", exception);
 		}
+	}
+
+	private void persistHistoryMetrics(UUID analysisId, GitHistoryAnalysisResult history) {
+		if (history.metricsByPeriod().isEmpty()) return;
+		jdbcTemplate.update("DELETE FROM file_metrics WHERE analysis_id = ?", analysisId);
+		List<Object[]> rows = new ArrayList<>();
+		history.metricsByPeriod().forEach((period, metrics) -> metrics.forEach(metric -> rows.add(new Object[] {
+				UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), period.name(), metric.commitCount(),
+				metric.additions(), metric.deletions(), metric.uniqueContributors(), Timestamp.from(metric.lastModifiedAt()), metric.totalChurn()
+		})));
+		jdbcTemplate.batchUpdate("""
+				INSERT INTO file_metrics (
+				    id, analysis_id, file_path, language, period, commit_count, additions, deletions,
+				    contributor_count, last_modified_at, total_churn)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				""", rows);
 	}
 
 	private void checkCancelled(UUID jobId, Predicate<UUID> cancelled) {

@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RepositoryAnalysisRepository extends JpaRepository<RepositoryAnalysis, UUID> {
 	List<RepositoryAnalysis> findByRepositoryIdOrderByCreatedAtDesc(UUID repositoryId);
+
+	java.util.Optional<RepositoryAnalysis> findFirstByRepositoryIdAndHistoryIncludedTrueOrderByAnalyzedAtDesc(UUID repositoryId);
 }

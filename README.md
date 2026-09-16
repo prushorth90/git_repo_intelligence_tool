@@ -107,6 +107,7 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `GET` | `/api/repositories/{id}/analysis-jobs` | List persisted analysis jobs for a repository. |
 | `POST` | `/api/repositories/{id}/analysis-jobs` | Persist a queued job and publish it to Redis. |
 | `POST` | `/api/repositories/{id}/analysis-jobs/{jobId}/cancel` | Cancel a queued or running job. |
+| `GET` | `/api/repositories/{id}/code-churn?period=DAYS_90` | Rank files by churn for `DAYS_30`, `DAYS_90`, `MONTHS_6`, or `ALL`. |
 | `GET` | `/api/auth/github/start` | Start the server-managed GitHub OAuth flow. |
 | `GET` | `/login/oauth2/code/github` | Spring Security OAuth callback registered with GitHub. |
 | `GET` | `/api/auth/github/me` | Return the sanitized connected GitHub account or disconnected state. |
@@ -135,7 +136,9 @@ Jobs move through `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, or `CANCELLED` and
 
 Workers use JGit to clone only HTTPS GitHub URLs into owner-only temporary directories. Source analysis uses a shallow clone (`depth=1`) by default; select **Include Git history** when a future historical metric needs the full repository history. Private-repository credentials are decrypted only inside the worker process and are never written into clone URLs or logs. Temporary checkouts are recursively deleted through `AutoCloseable` cleanup after success, cancellation, or failure.
 
-Baseline analysis persists source file count, relevant text size, language distribution, directory structure (up to four levels), file-extension counts, and whether history was included. It skips symlinks, binary formats/content, oversized files, generated/minified artifacts, lock files, and directories such as `.git`, `node_modules`, `target`, `build`, `dist`, `vendor`, `coverage`, `.next`, virtual environments, IDE metadata, and generated output. Churn, ownership, complexity, dependency, pull-request, hotspot, and risk analyzers remain future phases.
+Baseline analysis persists source file count, relevant text size, language distribution, directory structure (up to four levels), file-extension counts, and whether history was included. It skips symlinks, binary formats/content, oversized files, generated/minified artifacts, lock files, and directories such as `.git`, `node_modules`, `target`, `build`, `dist`, `vendor`, `coverage`, `.next`, virtual environments, IDE metadata, and generated output. Ownership, complexity, dependency, pull-request, and composite-risk analyzers remain future phases.
+
+When **Include Git history** is selected, the worker traverses commits once with JGit and diffs each commit against its first parent. For every relevant source path it stores commit count, added lines, removed lines, unique author count, latest modification time, and total churn (`additions + deletions`) for 30-day, 90-day, 6-month, and all-time windows. Merge commits use first-parent comparison to avoid double-counting merged history. The Code Hotspots page queries the latest completed history-enabled analysis and displays the top 100 files per period.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
 
