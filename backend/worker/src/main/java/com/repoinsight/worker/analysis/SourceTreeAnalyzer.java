@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SourceTreeAnalyzer {
 
-	private static final long MAX_ANALYZED_FILE_BYTES = 10 * 1024 * 1024;
+	static final long MAX_ANALYZED_FILE_BYTES = 10 * 1024 * 1024;
 
 	private static final Set<String> IGNORED_DIRECTORIES = Set.of(
 			".git", ".idea", ".vscode", ".gradle", ".next", ".nuxt", ".cache", ".terraform",
@@ -105,6 +105,10 @@ public class SourceTreeAnalyzer {
 		return !isGeneratedName(fileName) && !BINARY_EXTENSIONS.contains(extension) && LANGUAGES.containsKey(extension);
 	}
 
+	static boolean isIgnoredDirectory(Path directory) {
+		return IGNORED_DIRECTORIES.contains(directory.getFileName().toString().toLowerCase(Locale.ROOT));
+	}
+
 	static String languageForPath(String relativePath) {
 		String normalized = relativePath.replace('\\', '/');
 		return LANGUAGES.get(extension(Path.of(normalized).getFileName()));
@@ -116,7 +120,7 @@ public class SourceTreeAnalyzer {
 				|| name.endsWith(".lock") || name.endsWith("-lock.json");
 	}
 
-	private static boolean isBinary(Path file) throws IOException {
+	static boolean isBinary(Path file) throws IOException {
 		try (InputStream input = Files.newInputStream(file)) {
 			byte[] sample = input.readNBytes(8_192);
 			for (byte value : sample) if (value == 0) return true;

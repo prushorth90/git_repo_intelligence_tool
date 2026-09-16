@@ -19,6 +19,7 @@ public class AnalysisWorkload {
 	private final JdbcTemplate jdbcTemplate;
 	private final SecureRepositoryCloner repositoryCloner;
 	private final SourceTreeAnalyzer sourceTreeAnalyzer;
+	private final StructuralSourceAnalyzer structuralSourceAnalyzer;
 	private final GitHistoryAnalyzer gitHistoryAnalyzer;
 	private final WorkerAccessTokenCipher tokenCipher;
 	private final ObjectMapper objectMapper;
@@ -27,12 +28,14 @@ public class AnalysisWorkload {
 			JdbcTemplate jdbcTemplate,
 			SecureRepositoryCloner repositoryCloner,
 			SourceTreeAnalyzer sourceTreeAnalyzer,
+			StructuralSourceAnalyzer structuralSourceAnalyzer,
 			GitHistoryAnalyzer gitHistoryAnalyzer,
 			WorkerAccessTokenCipher tokenCipher,
 			ObjectMapper objectMapper) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.repositoryCloner = repositoryCloner;
 		this.sourceTreeAnalyzer = sourceTreeAnalyzer;
+		this.structuralSourceAnalyzer = structuralSourceAnalyzer;
 		this.gitHistoryAnalyzer = gitHistoryAnalyzer;
 		this.tokenCipher = tokenCipher;
 		this.objectMapper = objectMapper;
@@ -50,15 +53,46 @@ public class AnalysisWorkload {
 			progress.accept(jobId, 40);
 			SourceAnalysisResult result = sourceTreeAnalyzer.analyze(checkout.directory());
 			checkCancelled(jobId, cancelled);
-			progress.accept(jobId, 55);
+			progress.accept(jobId, 50);
+			List<StructuralFileMetrics> structures = structuralSourceAnalyzer.analyze(
+					checkout.directory(), jobId, progress, cancelled);
+			checkCancelled(jobId, cancelled);
+			progress.accept(jobId, 65);
 			GitHistoryAnalysisResult history = context.includeHistory()
 					? gitHistoryAnalyzer.analyze(checkout.directory(), jobId, cancelled)
 					: GitHistoryAnalysisResult.empty();
 			checkCancelled(jobId, cancelled);
-			progress.accept(jobId, 85);
+			progress.accept(jobId, 88);
 			UUID analysisId = persistResult(jobId, context, result);
+			persistStructuralMetrics(analysisId, structures);
 			persistHistoryMetrics(analysisId, history);
 			progress.accept(jobId, 95);
+		}
+	}
+
+	private void persistStructuralMetrics(UUID analysisId, List<StructuralFileMetrics> structures) {
+		try {
+			jdbcTemplate.update("DELETE FROM source_structure_metrics WHERE analysis_id = ?", analysisId);
+			List<Object[]> rows = new ArrayList<>();
+			for (StructuralFileMetrics metric : structures) {
+				rows.add(new Object[] {
+						UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), metric.classCount(),
+						metric.interfaceCount(), metric.methodCount(), metric.functionCount(), metric.imports().size(),
+						metric.averageMethodLength(), metric.maximumMethodLength(), metric.maximumNestingDepth(),
+						metric.controlFlowCount(), metric.parseError(), objectMapper.writeValueAsString(metric.symbols()),
+						objectMapper.writeValueAsString(metric.imports())
+				});
+			}
+			jdbcTemplate.batchUpdate("""
+					INSERT INTO source_structure_metrics (
+					    id, analysis_id, file_path, language, class_count, interface_count,
+					    method_count, function_count, import_count, average_method_length,
+					    maximum_method_length, maximum_nesting_depth, control_flow_count,
+					    parse_error, symbols, imports)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""", rows);
+		} catch (JacksonException exception) {
+			throw new IllegalStateException("Structural metadata serialization failed.", exception);
 		}
 	}
 

@@ -15,6 +15,9 @@ class SourceTreeAnalyzerTests {
 	Path temporaryDirectory;
 
 	private final SourceTreeAnalyzer analyzer = new SourceTreeAnalyzer();
+	private final StructuralSourceAnalyzer structuralAnalyzer = new StructuralSourceAnalyzer(java.util.List.of(
+			new JavaSourceCodeParser(), new CSharpSourceCodeParser(), new PythonSourceCodeParser(),
+			new TypeScriptSourceCodeParser()));
 
 	@Test
 	void collectsTextSourceMetricsAndIgnoresGeneratedAndBinaryContent() throws Exception {
@@ -50,5 +53,20 @@ class SourceTreeAnalyzerTests {
 		new RepositoryCheckout(root).close();
 
 		assertThat(root).doesNotExist();
+	}
+
+	@Test
+	void structurallyParsesOnlySupportedFiles() throws Exception {
+		Files.writeString(temporaryDirectory.resolve("Demo.java"), "class Demo { void run() {} }");
+		Files.writeString(temporaryDirectory.resolve("notes.txt"), "not source");
+
+		var results = structuralAnalyzer.analyze(
+				temporaryDirectory, java.util.UUID.randomUUID(), (id, progress) -> { }, id -> false);
+
+		assertThat(results).singleElement().satisfies(metric -> {
+			assertThat(metric.language()).isEqualTo("Java");
+			assertThat(metric.classCount()).isEqualTo(1);
+			assertThat(metric.methodCount()).isEqualTo(1);
+		});
 	}
 }

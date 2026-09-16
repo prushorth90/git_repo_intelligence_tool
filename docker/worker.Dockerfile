@@ -6,8 +6,8 @@ RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 COPY backend/worker/src ./src
 RUN ./gradlew bootJar --no-daemon
 
-FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S app && adduser -S app -G app
+FROM eclipse-temurin:21-jre
+RUN groupadd --system app && useradd --system --gid app app
 WORKDIR /app
 COPY --from=build /workspace/build/libs/*.jar app.jar
 USER app

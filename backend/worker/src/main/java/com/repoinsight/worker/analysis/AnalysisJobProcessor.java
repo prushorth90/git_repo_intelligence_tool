@@ -43,7 +43,7 @@ public class AnalysisJobProcessor {
 			complete(jobId);
 		} catch (AnalysisCancelledException exception) {
 			logger.info("Analysis job {} was cancelled", jobId);
-		} catch (RuntimeException exception) {
+		} catch (RuntimeException | LinkageError exception) {
 			failOrRetry(jobId, exception);
 		}
 	}
@@ -80,7 +80,7 @@ public class AnalysisJobProcessor {
 				""", jobId, workerId);
 	}
 
-	private void failOrRetry(UUID jobId, RuntimeException exception) {
+	private void failOrRetry(UUID jobId, Throwable exception) {
 		String reason = exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
 		Integer retries = jdbcTemplate.queryForObject(
 				"SELECT retry_count FROM analysis_jobs WHERE id = ?", Integer.class, jobId);
