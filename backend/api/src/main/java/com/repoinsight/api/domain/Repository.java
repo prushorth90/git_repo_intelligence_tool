@@ -44,6 +44,21 @@ public class Repository implements Serializable {
 	@Column(name = "is_private", nullable = false)
 	private boolean privateRepository;
 
+	@Column(nullable = false)
+	private String visibility;
+
+	@Column(name = "primary_language")
+	private String primaryLanguage;
+
+	@Column(name = "stargazers_count", nullable = false)
+	private int stars;
+
+	@Column(name = "forks_count", nullable = false)
+	private int forks;
+
+	@Column(name = "github_updated_at")
+	private Instant githubUpdatedAt;
+
 	@ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
 	@JoinColumn(name = "github_connection_id")
 	private GitHubConnection githubConnection;
@@ -60,6 +75,24 @@ public class Repository implements Serializable {
 		this.fullName = owner + "/" + name;
 		this.githubUrl = githubUrl;
 		this.defaultBranch = "main";
+		this.visibility = "public";
+		this.connectedAt = Instant.now();
+	}
+
+	public Repository(GitHubRepositoryMetadata metadata, GitHubConnection githubConnection) {
+		this.owner = metadata.owner();
+		this.name = metadata.name();
+		this.fullName = metadata.owner() + "/" + metadata.name();
+		this.githubUrl = metadata.githubUrl();
+		this.githubRepositoryId = metadata.githubRepositoryId();
+		this.defaultBranch = metadata.defaultBranch();
+		this.privateRepository = metadata.privateRepository();
+		this.visibility = metadata.visibility();
+		this.primaryLanguage = metadata.primaryLanguage();
+		this.stars = metadata.stars();
+		this.forks = metadata.forks();
+		this.githubUpdatedAt = metadata.githubUpdatedAt();
+		this.githubConnection = githubConnection;
 		this.connectedAt = Instant.now();
 	}
 
@@ -108,5 +141,25 @@ public class Repository implements Serializable {
 
 	public GitHubConnection getGithubConnection() {
 		return githubConnection;
+	}
+
+	public String getVisibility() { return visibility; }
+	public String getPrimaryLanguage() { return primaryLanguage; }
+	public int getStars() { return stars; }
+	public int getForks() { return forks; }
+	public Instant getGithubUpdatedAt() { return githubUpdatedAt; }
+
+	public record GitHubRepositoryMetadata(
+			long githubRepositoryId,
+			String owner,
+			String name,
+			String githubUrl,
+			String defaultBranch,
+			String visibility,
+			boolean privateRepository,
+			String primaryLanguage,
+			int stars,
+			int forks,
+			Instant githubUpdatedAt) {
 	}
 }

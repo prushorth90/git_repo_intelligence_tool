@@ -101,6 +101,8 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `GET` | `/api/auth/github/me` | Return the sanitized connected GitHub account or disconnected state. |
 | `GET` | `/api/auth/csrf` | Issue the CSRF token required for authenticated mutations. |
 | `POST` | `/api/auth/github/disconnect` | Delete stored credentials, remove the authorized client, and end the session. |
+| `GET` | `/api/github/repositories?page=1&perPage=30` | List repositories accessible to the authenticated GitHub account. |
+| `POST` | `/api/github/repositories/{githubRepositoryId}/import` | Re-fetch trusted metadata from GitHub and import the repository. |
 | `GET` | `/actuator/health` | Aggregate service health. |
 | `GET` | `/actuator/health/liveness` | Process liveness probe. |
 | `GET` | `/actuator/health/readiness` | Dependency readiness probe. |
@@ -122,7 +124,7 @@ The API follows package-by-layer boundaries under `com.repoinsight.api`: `contro
 
 ## GitHub OAuth
 
-Create a GitHub OAuth App and set its callback URL to `http://localhost:5173/login/oauth2/code/github` for the default Docker setup, or `http://localhost:8080/login/oauth2/code/github` when the frontend uses `VITE_API_URL=http://localhost:8080`. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and a 32-byte Base64 encryption key in `.env`:
+Create a GitHub OAuth App and set its callback URL to `http://localhost:5173/login/oauth2/code/github` for the default Docker setup, or `http://localhost:8080/login/oauth2/code/github` when the frontend uses `VITE_API_URL=http://localhost:8080`. The OAuth request includes `read:user`, `user:email`, and `repo` so private repositories the user can access can be listed. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and a 32-byte Base64 encryption key in `.env`:
 
 ```bash
 openssl rand -base64 32
@@ -131,3 +133,5 @@ openssl rand -base64 32
 Use the output as `GITHUB_TOKEN_ENCRYPTION_KEY`. Access tokens are encrypted with AES-256-GCM before PostgreSQL persistence; the API never returns them. The client secret is read only by the API container and must never be prefixed with `VITE_`.
 
 For HTTPS production deployments set `SESSION_COOKIE_SECURE=true`. If the frontend and API are genuinely cross-site, also set `SESSION_COOKIE_SAME_SITE=none`; same-origin deployment through Nginx remains preferred.
+
+The GitHub repository catalog is paginated with `page` and `perPage` (`1` to `100`). The backend forwards GitHub rate-limit status without exposing credentials; exhausted limits return HTTP `429`, a `Retry-After` header, and `rateLimitResetAt` in the problem response. Imports persist GitHub repository ID, owner, name, default branch, visibility, primary language, stars, forks, and GitHub's last-updated timestamp before queueing analysis.

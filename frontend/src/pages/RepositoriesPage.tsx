@@ -3,6 +3,7 @@ import { useDeferredValue, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { DataTable } from '../components/DataTable'
+import { GitHubRepositoryBrowser } from '../components/GitHubRepositoryBrowser'
 import type { TableColumn } from '../components/DataTable'
 import { PageHeader } from '../components/PageHeader'
 import { StatusBadge } from '../components/StatusBadge'
@@ -68,6 +69,8 @@ export function RepositoriesPage() {
         description="Browse connected codebases and open their persisted repository details."
         action={<button className="primary-button" onClick={() => setCreateOpen((open) => !open)} type="button">{createOpen ? <X size={16} /> : <Plus size={16} />}{createOpen ? 'Close' : 'Add repository'}</button>}
       />
+
+      <GitHubRepositoryBrowser />
 
       {createOpen && (
         <section className="create-panel">

@@ -27,10 +27,11 @@ public class SecurityConfiguration {
 		http
 				.authorizeHttpRequests(authorize -> {
 					if (appProperties.github().configured()) {
-						authorize.requestMatchers("/api/auth/github/disconnect").authenticated();
+						authorize.requestMatchers(
+								"/api/auth/github/disconnect", "/api/github/**").authenticated();
 					} else {
 						authorize.requestMatchers(
-								"/oauth2/**", "/login/oauth2/**", "/api/auth/github/disconnect").denyAll();
+								"/oauth2/**", "/login/oauth2/**", "/api/auth/github/disconnect", "/api/github/**").denyAll();
 					}
 					authorize.anyRequest().permitAll();
 				})

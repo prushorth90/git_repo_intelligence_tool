@@ -1,4 +1,4 @@
-import type { AnalysisJobResponse, ApiProblem, CreateRepositoryRequest, CsrfTokenResponse, GitHubUserResponse, RepositoryResponse } from './types'
+import type { AnalysisJobResponse, ApiProblem, CreateRepositoryRequest, CsrfTokenResponse, GitHubRepositoryPageResponse, GitHubUserResponse, RepositoryResponse } from './types'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? ''
 const apiBaseUrl = configuredApiUrl.replace(/\/$/, '')
@@ -9,11 +9,13 @@ export function apiUrl(path: string) {
 
 export class ApiError extends Error {
   readonly status: number
+  readonly rateLimitResetAt?: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, rateLimitResetAt?: string) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.rateLimitResetAt = rateLimitResetAt
   }
 }
 
@@ -29,7 +31,7 @@ async function request<Response>(path: string, init?: RequestInit): Promise<Resp
 
   if (!response.ok) {
     const problem = await response.json().catch(() => null) as ApiProblem | null
-    throw new ApiError(response.status, problem?.detail ?? problem?.title ?? 'The request could not be completed.')
+    throw new ApiError(response.status, problem?.detail ?? problem?.title ?? 'The request could not be completed.', problem?.rateLimitResetAt)
   }
 
   if (response.status === 204) return undefined as Response
@@ -50,6 +52,25 @@ export const authApi = {
     return request<void>('/api/auth/github/disconnect', {
       method: 'POST',
       headers: { [csrf.headerName]: csrf.token },
+    })
+  },
+}
+
+async function csrfHeaders() {
+  const csrf = await request<CsrfTokenResponse>('/api/auth/csrf')
+  return { [csrf.headerName]: csrf.token }
+}
+
+export const gitHubApi = {
+  repositories(page: number, perPage: number, signal?: AbortSignal) {
+    const params = new URLSearchParams({ page: page.toString(), perPage: perPage.toString() })
+    return request<GitHubRepositoryPageResponse>(`/api/github/repositories?${params}`, { signal })
+  },
+
+  async importRepository(githubRepositoryId: number) {
+    return request<RepositoryResponse>(`/api/github/repositories/${githubRepositoryId}/import`, {
+      method: 'POST',
+      headers: await csrfHeaders(),
     })
   },
 }

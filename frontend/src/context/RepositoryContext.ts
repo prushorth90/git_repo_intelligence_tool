@@ -21,6 +21,7 @@ export type RepositoryContextValue = {
   error: string
   reload: () => void
   createRepository: (githubUrl: string) => Promise<RepositoryView>
+  importGitHubRepository: (githubRepositoryId: number) => Promise<RepositoryView>
 }
 
 export const RepositoryContext = createContext<RepositoryContextValue | null>(null)

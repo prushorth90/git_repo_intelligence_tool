@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, GitBranch, Globe2, LockKeyhole } from 'lucide-react'
+import { ArrowLeft, CalendarDays, GitBranch, GitFork, Globe2, LockKeyhole, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { repositoryApi } from '../api/client'
@@ -54,6 +54,10 @@ export function RepositoryDetailsPage() {
         <article><GitBranch size={18} /><span>Default branch</span><strong>{repository.defaultBranch}</strong></article>
         <article><CalendarDays size={18} /><span>Connected</span><strong>{new Date(repository.connectedAt).toLocaleString()}</strong></article>
         <article><LockKeyhole size={18} /><span>GitHub ID</span><strong>{repository.githubRepositoryId ?? 'Pending sync'}</strong></article>
+        <article><Star size={18} /><span>Stars</span><strong>{repository.stars.toLocaleString()}</strong></article>
+        <article><GitFork size={18} /><span>Forks</span><strong>{repository.forks.toLocaleString()}</strong></article>
+        <article><Globe2 size={18} /><span>Language</span><strong>{repository.primaryLanguage ?? 'Unavailable'}</strong></article>
+        <article><CalendarDays size={18} /><span>GitHub updated</span><strong>{repository.githubUpdatedAt ? new Date(repository.githubUpdatedAt).toLocaleString() : 'Pending sync'}</strong></article>
       </section>
       <section className="detail-panel">
         <div><span>Repository ID</span><code>{repository.id}</code></div>

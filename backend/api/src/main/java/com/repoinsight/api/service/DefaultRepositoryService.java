@@ -36,21 +36,21 @@ public class DefaultRepositoryService implements RepositoryService {
 
 	@Override
 	@Transactional(readOnly = true)
-	@Cacheable(value = "repositories", key = "'all'")
+	@Cacheable(value = "repositories-v2", key = "'all'")
 	public List<Repository> findAll() {
 		return repositoryRepository.findAll();
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	@Cacheable(value = "repository", key = "#id")
+	@Cacheable(value = "repository-v2", key = "#id")
 	public Repository findById(UUID id) {
 		return repositoryRepository.findById(id).orElseThrow(() -> new RepositoryNotFoundException(id));
 	}
 
 	@Override
 	@Transactional
-	@CacheEvict(value = { "repositories", "repository" }, allEntries = true)
+	@CacheEvict(value = { "repositories-v2", "repository-v2" }, allEntries = true)
 	public Repository create(String githubUrl) {
 		GitHubRepositoryCoordinates coordinates = urlParser.parse(githubUrl);
 		ensureAvailable(coordinates.fullName(), null);
@@ -64,7 +64,7 @@ public class DefaultRepositoryService implements RepositoryService {
 
 	@Override
 	@Transactional
-	@CacheEvict(value = { "repositories", "repository" }, allEntries = true)
+	@CacheEvict(value = { "repositories-v2", "repository-v2" }, allEntries = true)
 	public Repository update(UUID id, String githubUrl) {
 		Repository repository = repositoryRepository.findById(id)
 				.orElseThrow(() -> new RepositoryNotFoundException(id));
@@ -76,7 +76,7 @@ public class DefaultRepositoryService implements RepositoryService {
 
 	@Override
 	@Transactional
-	@CacheEvict(value = { "repositories", "repository" }, allEntries = true)
+	@CacheEvict(value = { "repositories-v2", "repository-v2" }, allEntries = true)
 	public void delete(UUID id) {
 		Repository repository = repositoryRepository.findById(id)
 				.orElseThrow(() -> new RepositoryNotFoundException(id));

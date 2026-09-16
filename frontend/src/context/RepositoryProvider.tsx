@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { repositoryApi } from '../api/client'
+import { gitHubApi } from '../api/client'
 import type { RepositoryResponse } from '../api/types'
 import { RepositoryContext } from './RepositoryContext'
 import type { RepositoryView } from './RepositoryContext'
 
 const analyticsProfiles = [
-  { language: 'Not analyzed', healthScore: 82, commits: 2847, contributors: 24, status: 'Healthy' as const },
-  { language: 'Not analyzed', healthScore: 68, commits: 1932, contributors: 16, status: 'Attention' as const },
-  { language: 'Not analyzed', healthScore: 54, commits: 1108, contributors: 11, status: 'At risk' as const },
+  { healthScore: 82, commits: 2847, contributors: 24, status: 'Healthy' as const },
+  { healthScore: 68, commits: 1932, contributors: 16, status: 'Attention' as const },
+  { healthScore: 54, commits: 1108, contributors: 11, status: 'At risk' as const },
 ]
 
 function toRepositoryView(repository: RepositoryResponse, index: number): RepositoryView {
@@ -17,6 +18,7 @@ function toRepositoryView(repository: RepositoryResponse, index: number): Reposi
     ...repository,
     organization: repository.owner,
     branch: repository.defaultBranch,
+    language: repository.primaryLanguage ?? 'Not analyzed',
     lastAnalyzed: 'queued',
     ...profile,
   }
@@ -56,6 +58,14 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     return repository
   }
 
+  async function importGitHubRepository(githubRepositoryId: number) {
+    const imported = await gitHubApi.importRepository(githubRepositoryId)
+    const repository = toRepositoryView(imported, repositories.length)
+    setRepositories((current) => [repository, ...current])
+    setRepositoryId(repository.id)
+    return repository
+  }
+
   function reload() {
     setLoadState('loading')
     setError('')
@@ -74,6 +84,7 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       error,
       reload,
       createRepository,
+      importGitHubRepository,
     }}>
       {children}
     </RepositoryContext.Provider>

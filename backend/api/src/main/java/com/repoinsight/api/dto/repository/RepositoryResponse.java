@@ -14,6 +14,11 @@ public record RepositoryResponse(
 		Long githubRepositoryId,
 		String defaultBranch,
 		boolean privateRepository,
+		String visibility,
+		String primaryLanguage,
+		int stars,
+		int forks,
+		Instant githubUpdatedAt,
 		Instant connectedAt) {
 
 	public static RepositoryResponse from(Repository repository) {
@@ -26,6 +31,11 @@ public record RepositoryResponse(
 				repository.getGithubRepositoryId(),
 				repository.getDefaultBranch(),
 				repository.isPrivateRepository(),
+				repository.getVisibility(),
+				repository.getPrimaryLanguage(),
+				repository.getStars(),
+				repository.getForks(),
+				repository.getGithubUpdatedAt(),
 				repository.getConnectedAt());
 	}
 }

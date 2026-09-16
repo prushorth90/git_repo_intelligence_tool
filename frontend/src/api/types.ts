@@ -7,6 +7,11 @@ export type RepositoryResponse = {
   githubRepositoryId: number | null
   defaultBranch: string
   privateRepository: boolean
+  visibility: string
+  primaryLanguage: string | null
+  stars: number
+  forks: number
+  githubUpdatedAt: string | null
   connectedAt: string
 }
 
@@ -30,6 +35,32 @@ export type ApiProblem = {
   title?: string
   status?: number
   detail?: string
+  rateLimitResetAt?: string
+}
+
+export type GitHubRepositoryResponse = {
+  id: number
+  owner: string
+  name: string
+  fullName: string
+  htmlUrl: string
+  defaultBranch: string
+  visibility: string
+  privateRepository: boolean
+  primaryLanguage: string | null
+  stars: number
+  forks: number
+  updatedAt: string
+  imported: boolean
+}
+
+export type GitHubRepositoryPageResponse = {
+  repositories: GitHubRepositoryResponse[]
+  page: number
+  perPage: number
+  hasNextPage: boolean
+  rateLimitRemaining: number
+  rateLimitResetAt: string
 }
 
 export type GitHubUserResponse = {
