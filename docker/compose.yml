@@ -1,0 +1,95 @@
+name: repository-intelligence
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-repo_intelligence}
+      POSTGRES_USER: ${POSTGRES_USER:-repo_intelligence}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repo_intelligence}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    command: >-
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+      exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+      else exec redis-server --appendonly yes; fi'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $$REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-repo_intelligence}
+      DATABASE_USERNAME: ${POSTGRES_USER:-repo_intelligence}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-repo_intelligence}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-5173}
+      ANALYSIS_QUEUE_NAME: ${ANALYSIS_QUEUE_NAME:-analysis:pending}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/worker.Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      ANALYSIS_QUEUE_NAME: ${ANALYSIS_QUEUE_NAME:-analysis:pending}
+      ANALYSIS_POLL_DELAY_MS: ${ANALYSIS_POLL_DELAY_MS:-2000}
+    ports:
+      - "${WORKER_PORT:-8081}:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/actuator/health/readiness"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

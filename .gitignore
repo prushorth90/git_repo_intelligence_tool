@@ -1,0 +1,8 @@
+.DS_Store
+.env
+.idea/
+.vscode/
+**/.gradle/
+**/build/
+**/node_modules/
+**/dist/
