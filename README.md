@@ -1,12 +1,12 @@
 # Repository Intelligence
 
-Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. This initial version connects and stores repository coordinates, caches repository reads, and queues placeholder analysis work. It does not yet clone repositories or calculate analytics.
+Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend currently presents a routed, mock-data engineering workspace; the backend separately stores repository coordinates, caches repository reads, and queues placeholder analysis work. It does not yet clone repositories or calculate analytics.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Browser[React + TypeScript] -->|REST /api| API[Spring Boot API]
+    Browser[React + TypeScript mock workspace] -.->|future REST integration| API[Spring Boot API]
     API -->|repositories + migrations| PostgreSQL[(PostgreSQL)]
     API -->|cache + pending jobs| Redis[(Redis)]
     Redis -->|analysis:pending| Worker[Spring Boot Worker]
@@ -14,7 +14,7 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| `frontend/` | React 19 and TypeScript workspace for connecting repositories and viewing analysis states. |
+| `frontend/` | React 19, TypeScript, React Router, and Recharts workspace using local mock intelligence data. |
 | `backend/api/` | Java 21 Spring Boot 4.1.1 REST API, persistence, Flyway migrations, Redis caching, and job publishing. |
 | `backend/worker/` | Java 21 Spring Boot 4.1.1 process that consumes queued repository IDs. Analytics are a placeholder. |
 | `infrastructure/` | Infrastructure ownership notes and future deployment definitions. |
@@ -57,7 +57,7 @@ cd backend/worker && ./gradlew bootRun
 cd frontend && npm install && npm run dev
 ```
 
-Vite proxies `/api` to `http://localhost:8080`. Set `VITE_API_URL` at frontend build time when the API is hosted on a different origin.
+Vite can proxy `/api` to `http://localhost:8080`, but the current frontend intentionally makes no backend requests. API integration is deferred to a later phase.
 
 ## Configuration
 
