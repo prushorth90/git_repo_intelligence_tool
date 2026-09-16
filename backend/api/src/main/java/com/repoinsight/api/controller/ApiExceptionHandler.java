@@ -1,6 +1,7 @@
 package com.repoinsight.api.controller;
 
 import com.repoinsight.api.service.exception.InvalidRepositoryUrlException;
+import com.repoinsight.api.service.exception.GitHubOAuthNotConfiguredException;
 import com.repoinsight.api.service.exception.RepositoryAlreadyConnectedException;
 import com.repoinsight.api.service.exception.RepositoryNotFoundException;
 
@@ -25,6 +26,11 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(RepositoryNotFoundException.class)
 	public ProblemDetail repositoryNotFound(RepositoryNotFoundException exception) {
 		return problem(HttpStatus.NOT_FOUND, exception.getMessage());
+	}
+
+	@ExceptionHandler(GitHubOAuthNotConfiguredException.class)
+	public ProblemDetail githubOAuthNotConfigured(GitHubOAuthNotConfiguredException exception) {
+		return problem(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
 	}
 
 	private ProblemDetail problem(HttpStatus status, String detail) {

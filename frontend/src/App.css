@@ -127,6 +127,17 @@
 .repository-selector select { width: 100%; border: 0; outline: 0; appearance: none; color: var(--ink); background: transparent; font-size: 11px; font-weight: 600; }
 .repository-selector select:disabled { color: var(--muted); }
 
+.github-account { min-height: 42px; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.github-account img, .github-avatar-fallback { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #e7eae4; object-fit: cover; }
+.github-account__identity { min-width: 82px; display: grid; gap: 1px; }
+.github-account__identity small { color: var(--muted); font: 500 8px 'DM Mono', monospace; text-transform: uppercase; }
+.github-account__identity strong { max-width: 130px; overflow: hidden; color: var(--ink); font-size: 10px; text-overflow: ellipsis; }
+.github-account__loading { color: var(--muted); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
+.connect-github-button, .account-action { min-height: 36px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); color: var(--ink); background: #fff; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.connect-github-button:hover, .account-action:hover { border-color: var(--ink); }
+.connect-github-button:disabled, .account-action:disabled { cursor: not-allowed; opacity: .5; }
+.account-action { min-height: 30px; padding-inline: 8px; color: var(--muted); font-size: 9px; }
+
 .icon-button { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border: 1px solid var(--line); color: var(--ink); background: transparent; cursor: pointer; }
 .mobile-menu-button, .nav-scrim { display: none; }
 
@@ -285,6 +296,7 @@
   .sidebar nav { margin-top: 44px; }
   .nav-item { justify-content: center; padding: 0; }
   .dashboard-grid { grid-template-columns: 1fr; }
+  .topbar-context { display: none; }
   .details-grid { grid-template-columns: repeat(2, 1fr); }
   .details-grid article:nth-child(2) { border-right: 0; }
   .details-grid article:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
@@ -303,7 +315,9 @@
   .nav-scrim { position: fixed; z-index: 15; inset: 0; display: block; width: 100%; height: 100%; padding: 0; background: rgba(10, 17, 13, .46); }
   .topbar { min-height: 68px; padding: 10px 16px; }
   .topbar-context { display: none; }
-  .repository-selector { width: min(300px, calc(100vw - 68px)); }
+  .repository-selector { width: auto; min-width: 0; flex: 1 1 auto; }
+  .github-account__identity { display: none; }
+  .connect-github-button { width: 36px; padding: 0; font-size: 0; }
   .page-content { padding: 28px 16px 52px; }
   .page-header { min-height: 0; display: grid; }
   .page-header h1 { font-size: 28px; }

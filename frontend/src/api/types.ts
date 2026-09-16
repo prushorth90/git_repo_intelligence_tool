@@ -31,3 +31,16 @@ export type ApiProblem = {
   status?: number
   detail?: string
 }
+
+export type GitHubUserResponse = {
+  configured: boolean
+  connected: boolean
+  login: string | null
+  avatarUrl: string | null
+  connectedAt: string | null
+}
+
+export type CsrfTokenResponse = {
+  headerName: string
+  token: string
+}

@@ -47,6 +47,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       ANALYSIS_QUEUE_NAME: ${ANALYSIS_QUEUE_NAME:-analysis:pending}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-github-client-id-not-configured}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-github-client-secret-not-configured}
+      GITHUB_TOKEN_ENCRYPTION_KEY: ${GITHUB_TOKEN_ENCRYPTION_KEY:-}
+      GITHUB_FRONTEND_REDIRECT_URL: ${GITHUB_FRONTEND_REDIRECT_URL:-http://localhost:5173}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE:-lax}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:

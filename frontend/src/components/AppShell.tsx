@@ -8,6 +8,7 @@ import {
   GitPullRequest,
   LayoutDashboard,
   Menu,
+  Code2,
   Network,
   Radar,
   Users,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useRepository } from '../context/RepositoryContext'
+import { useAuth } from '../context/AuthContext'
 import { WorkspaceState } from './WorkspaceState'
 
 const navigation = [
@@ -39,6 +41,7 @@ const pageNames: Record<string, string> = {
 
 export function AppShell() {
   const location = useLocation()
+  const auth = useAuth()
   const { repositories, repositoryId, setRepositoryId, loadState, error, reload } = useRepository()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const emptyWorkspace = loadState === 'success' && repositories.length === 0 && location.pathname !== '/repositories'
@@ -107,6 +110,19 @@ export function AppShell() {
               </span>
               <ChevronDown size={15} />
             </label>
+            <div className="github-account">
+              {auth.state === 'loading' ? (
+                <span className="github-account__loading">Checking GitHub...</span>
+              ) : auth.user?.connected ? (
+                <>
+                  {auth.user.avatarUrl ? <img alt="" src={auth.user.avatarUrl} /> : <span className="github-avatar-fallback"><Code2 size={15} /></span>}
+                  <span className="github-account__identity"><small>GitHub</small><strong>@{auth.user.login}</strong></span>
+                  <button className="account-action" disabled={auth.state === 'disconnecting'} onClick={() => void auth.disconnect()} type="button">Disconnect</button>
+                </>
+              ) : (
+                <button className="connect-github-button" disabled={!auth.user?.configured || auth.state === 'error'} onClick={auth.connect} title={auth.user?.configured ? 'Connect GitHub account' : 'Configure GitHub OAuth on the server'} type="button"><Code2 size={15} /> Connect GitHub</button>
+              )}
+            </div>
           </header>
 
           <main className="page-content">

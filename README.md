@@ -72,6 +72,12 @@ Configuration is externalized through environment variables. Defaults are suitab
 | `REDIS_PASSWORD` | empty | API, worker |
 | `FRONTEND_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | API CORS |
 | `VITE_API_URL` | empty (same origin) | Frontend build |
+| `GITHUB_CLIENT_ID` | none | API OAuth client |
+| `GITHUB_CLIENT_SECRET` | none | API OAuth client |
+| `GITHUB_TOKEN_ENCRYPTION_KEY` | none | API credential encryption |
+| `GITHUB_FRONTEND_REDIRECT_URL` | `http://localhost:5173` | OAuth success/failure redirect |
+| `SESSION_COOKIE_SECURE` | `false` | API session cookie |
+| `SESSION_COOKIE_SAME_SITE` | `lax` | API session cookie |
 | `ANALYSIS_QUEUE_NAME` | `analysis:pending` | API, worker |
 | `ANALYSIS_POLL_DELAY_MS` | `2000` | Worker |
 | `API_PORT` / `WORKER_PORT` | `8080` / `8081` | Services |
@@ -90,6 +96,11 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `PUT` | `/api/repositories/{id}` | Update a repository using the same URL payload. |
 | `DELETE` | `/api/repositories/{id}` | Delete a repository and its analysis records. |
 | `GET` | `/api/repositories/{id}/analysis-jobs` | List persisted analysis jobs for a repository. |
+| `GET` | `/api/auth/github/start` | Start the server-managed GitHub OAuth flow. |
+| `GET` | `/login/oauth2/code/github` | Spring Security OAuth callback registered with GitHub. |
+| `GET` | `/api/auth/github/me` | Return the sanitized connected GitHub account or disconnected state. |
+| `GET` | `/api/auth/csrf` | Issue the CSRF token required for authenticated mutations. |
+| `POST` | `/api/auth/github/disconnect` | Delete stored credentials, remove the authorized client, and end the session. |
 | `GET` | `/actuator/health` | Aggregate service health. |
 | `GET` | `/actuator/health/liveness` | Process liveness probe. |
 | `GET` | `/actuator/health/readiness` | Dependency readiness probe. |
@@ -108,3 +119,15 @@ docker compose -f docker/compose.yml config --quiet
 The worker boundary is ready for future jobs covering repository activity, code churn, ownership concentration, complexity, dependency relationships, pull request metrics, hotspots, and engineering risk. Job retries, GitHub authentication, collection, scoring, and result schemas should be designed as the next phase rather than added to the placeholder consumer.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
+
+## GitHub OAuth
+
+Create a GitHub OAuth App and set its callback URL to `http://localhost:5173/login/oauth2/code/github` for the default Docker setup, or `http://localhost:8080/login/oauth2/code/github` when the frontend uses `VITE_API_URL=http://localhost:8080`. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and a 32-byte Base64 encryption key in `.env`:
+
+```bash
+openssl rand -base64 32
+```
+
+Use the output as `GITHUB_TOKEN_ENCRYPTION_KEY`. Access tokens are encrypted with AES-256-GCM before PostgreSQL persistence; the API never returns them. The client secret is read only by the API container and must never be prefixed with `VITE_`.
+
+For HTTPS production deployments set `SESSION_COOKIE_SECURE=true`. If the frontend and API are genuinely cross-site, also set `SESSION_COOKIE_SAME_SITE=none`; same-origin deployment through Nginx remains preferred.

@@ -1,7 +1,11 @@
-import type { AnalysisJobResponse, ApiProblem, CreateRepositoryRequest, RepositoryResponse } from './types'
+import type { AnalysisJobResponse, ApiProblem, CreateRepositoryRequest, CsrfTokenResponse, GitHubUserResponse, RepositoryResponse } from './types'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? ''
 const apiBaseUrl = configuredApiUrl.replace(/\/$/, '')
+
+export function apiUrl(path: string) {
+  return `${apiBaseUrl}${path}`
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -14,8 +18,9 @@ export class ApiError extends Error {
 }
 
 async function request<Response>(path: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
+    credentials: 'include',
     headers: {
       Accept: 'application/json',
       ...init?.headers,
@@ -27,7 +32,26 @@ async function request<Response>(path: string, init?: RequestInit): Promise<Resp
     throw new ApiError(response.status, problem?.detail ?? problem?.title ?? 'The request could not be completed.')
   }
 
+  if (response.status === 204) return undefined as Response
   return response.json() as Promise<Response>
+}
+
+export const authApi = {
+  current(signal?: AbortSignal) {
+    return request<GitHubUserResponse>('/api/auth/github/me', { signal })
+  },
+
+  startUrl() {
+    return apiUrl('/api/auth/github/start')
+  },
+
+  async disconnect() {
+    const csrf = await request<CsrfTokenResponse>('/api/auth/csrf')
+    return request<void>('/api/auth/github/disconnect', {
+      method: 'POST',
+      headers: { [csrf.headerName]: csrf.token },
+    })
+  },
 }
 
 export const repositoryApi = {

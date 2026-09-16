@@ -34,6 +34,9 @@ public class GitHubConnection implements Serializable {
 	@Column(name = "github_login", nullable = false)
 	private String githubLogin;
 
+	@Column(name = "avatar_url", nullable = false)
+	private String avatarUrl;
+
 	@Column(name = "encrypted_access_token", nullable = false)
 	private String encryptedAccessToken;
 
@@ -49,20 +52,40 @@ public class GitHubConnection implements Serializable {
 	protected GitHubConnection() {
 	}
 
-	public GitHubConnection(User user, Long githubUserId, String githubLogin, String encryptedAccessToken, String scopes) {
+	public GitHubConnection(
+			User user,
+			Long githubUserId,
+			String githubLogin,
+			String avatarUrl,
+			String encryptedAccessToken,
+			String scopes) {
 		this.user = user;
 		this.githubUserId = githubUserId;
 		this.githubLogin = githubLogin;
+		this.avatarUrl = avatarUrl;
 		this.encryptedAccessToken = encryptedAccessToken;
 		this.scopes = scopes;
 		this.connectedAt = Instant.now();
 		this.updatedAt = connectedAt;
 	}
 
+	public void updateCredentials(
+			String githubLogin,
+			String avatarUrl,
+			String encryptedAccessToken,
+			String scopes) {
+		this.githubLogin = githubLogin;
+		this.avatarUrl = avatarUrl;
+		this.encryptedAccessToken = encryptedAccessToken;
+		this.scopes = scopes;
+		this.updatedAt = Instant.now();
+	}
+
 	public UUID getId() { return id; }
 	public User getUser() { return user; }
 	public Long getGithubUserId() { return githubUserId; }
 	public String getGithubLogin() { return githubLogin; }
+	public String getAvatarUrl() { return avatarUrl; }
 	public String getEncryptedAccessToken() { return encryptedAccessToken; }
 	public String getScopes() { return scopes; }
 	public Instant getConnectedAt() { return connectedAt; }

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { AuthProvider } from './context/AuthProvider'
 import { RepositoryProvider } from './context/RepositoryProvider'
 import './App.css'
 
@@ -15,8 +16,9 @@ const AnalysisHistoryPage = lazy(() => import('./pages/AnalysisHistoryPage').the
 
 function App() {
   return (
-    <RepositoryProvider>
-      <Suspense fallback={<div className="route-loading">Loading workspace...</div>}>
+    <AuthProvider>
+      <RepositoryProvider>
+        <Suspense fallback={<div className="route-loading">Loading workspace...</div>}>
         <Routes>
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
@@ -30,8 +32,9 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
-      </Suspense>
-    </RepositoryProvider>
+        </Suspense>
+      </RepositoryProvider>
+    </AuthProvider>
   )
 }
 
