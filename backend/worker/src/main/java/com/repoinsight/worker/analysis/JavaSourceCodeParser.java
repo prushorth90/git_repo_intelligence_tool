@@ -16,7 +16,10 @@ public class JavaSourceCodeParser extends TreeSitterSourceCodeParser {
 				Set.of("interface_declaration"),
 				Set.of("method_declaration", "constructor_declaration"), Set.of(), Set.of("import_declaration"),
 				Set.of("if_statement", "for_statement", "enhanced_for_statement", "while_statement", "do_statement",
-						"switch_expression", "catch_clause", "ternary_expression"), false);
+						"switch_expression", "catch_clause", "ternary_expression"),
+				Set.of("if_statement", "for_statement", "enhanced_for_statement", "while_statement", "do_statement",
+						"catch_clause", "ternary_expression"),
+				Set.of("switch_label", "switch_rule"), Set.of("binary_expression"), false);
 	}
 
 	@Override

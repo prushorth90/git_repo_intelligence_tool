@@ -230,6 +230,9 @@
 .hotspot-empty p { margin: 0; font-size: 11px; }
 .module-list { max-width: 260px; display: flex; flex-wrap: wrap; gap: 4px; }
 .module-list span { padding: 3px 6px; color: var(--muted); background: #e9ebe5; font: 500 8px 'DM Mono', monospace; }
+.complexity-rules { padding: 20px; display: grid; grid-template-columns: minmax(220px, .8fr) minmax(320px, 1.2fr); gap: 30px; border: 1px solid var(--line); background: var(--paper); }
+.complexity-rules h2 { margin: 7px 0 0; font-size: 16px; }
+.complexity-rules ul { margin: 0; padding-left: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 24px; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .pagination-controls { margin-top: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .pagination-controls span { color: var(--muted); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .pagination-controls .icon-button:disabled { cursor: not-allowed; opacity: .35; }
@@ -370,6 +373,8 @@
   .analysis-action { width: 100%; align-items: stretch; flex-direction: column; }
   .analysis-action .primary-button { width: 100%; }
     .period-control { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+    .complexity-rules { grid-template-columns: 1fr; gap: 18px; }
+    .complexity-rules ul { grid-template-columns: 1fr; }
   .metrics-grid, .metrics-grid--three { grid-template-columns: repeat(2, 1fr); }
   .metric-card, .metric-card:nth-child(3) { min-height: 128px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .metric-card:nth-child(even) { border-right: 0; }

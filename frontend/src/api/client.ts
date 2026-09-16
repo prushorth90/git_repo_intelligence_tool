@@ -1,4 +1,4 @@
-import type { AnalysisJobResponse, ApiProblem, CodeChurnRankingResponse, ContributorOverviewResponse, CreateRepositoryRequest, CsrfTokenResponse, GitHubRepositoryPageResponse, GitHubUserResponse, HistoryPeriod, RepositoryResponse } from './types'
+import type { AnalysisJobResponse, ApiProblem, CodeChurnRankingResponse, ComplexityOverviewResponse, ContributorOverviewResponse, CreateRepositoryRequest, CsrfTokenResponse, GitHubRepositoryPageResponse, GitHubUserResponse, HistoryPeriod, RepositoryResponse } from './types'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? ''
 const apiBaseUrl = configuredApiUrl.replace(/\/$/, '')
@@ -118,5 +118,9 @@ export const repositoryApi = {
 
   contributorOwnership(repositoryId: string, signal?: AbortSignal) {
     return request<ContributorOverviewResponse>(`/api/repositories/${repositoryId}/contributors`, { signal })
+  },
+
+  complexity(repositoryId: string, signal?: AbortSignal) {
+    return request<ComplexityOverviewResponse>(`/api/repositories/${repositoryId}/complexity`, { signal })
   },
 }

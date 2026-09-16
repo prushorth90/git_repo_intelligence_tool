@@ -6,5 +6,6 @@ public record StructuralSymbol(
 		int startLine,
 		int endLine,
 		int length,
-		int nestingDepth) {
+		int nestingDepth,
+		int cyclomaticComplexity) {
 }

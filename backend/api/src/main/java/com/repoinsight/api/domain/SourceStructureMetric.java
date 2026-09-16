@@ -59,6 +59,12 @@ public class SourceStructureMetric {
 	@Column(name = "control_flow_count", nullable = false)
 	private int controlFlowCount;
 
+	@Column(name = "cyclomatic_complexity", nullable = false)
+	private int cyclomaticComplexity;
+
+	@Column(name = "maximum_method_complexity", nullable = false)
+	private int maximumMethodComplexity;
+
 	@Column(name = "parse_error", nullable = false)
 	private boolean parseError;
 
@@ -83,5 +89,7 @@ public class SourceStructureMetric {
 	public int getMaximumMethodLength() { return maximumMethodLength; }
 	public int getMaximumNestingDepth() { return maximumNestingDepth; }
 	public int getControlFlowCount() { return controlFlowCount; }
+	public int getCyclomaticComplexity() { return cyclomaticComplexity; }
+	public int getMaximumMethodComplexity() { return maximumMethodComplexity; }
 	public boolean isParseError() { return parseError; }
 }

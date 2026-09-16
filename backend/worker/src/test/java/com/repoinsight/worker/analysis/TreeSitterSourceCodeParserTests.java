@@ -20,7 +20,7 @@ class TreeSitterSourceCodeParserTests {
 				interface Contract { void execute(); }
 				class Demo {
 				  void run() {
-				    if (true) {
+				    if (true && false) {
 				      for (int index = 0; index < 1; index++) { System.out.println(index); }
 				    }
 				  }
@@ -33,7 +33,11 @@ class TreeSitterSourceCodeParserTests {
 		assertThat(metrics.imports()).hasSize(1);
 		assertThat(metrics.controlFlowCount()).isEqualTo(2);
 		assertThat(metrics.maximumNestingDepth()).isEqualTo(2);
+		assertThat(metrics.cyclomaticComplexity()).isEqualTo(4);
+		assertThat(metrics.maximumMethodComplexity()).isEqualTo(4);
 		assertThat(metrics.symbols()).extracting(StructuralSymbol::name).contains("Contract", "Demo", "run", "execute");
+		assertThat(metrics.symbols()).filteredOn(symbol -> symbol.name().equals("run")).singleElement()
+				.extracting(StructuralSymbol::cyclomaticComplexity).isEqualTo(4);
 		assertThat(metrics.parseError()).isFalse();
 	}
 
@@ -44,7 +48,7 @@ class TreeSitterSourceCodeParserTests {
 				interface IRunner { void Run(); }
 				class Demo : IRunner {
 				  public void Run() {
-				    if (true) { while (false) { Console.WriteLine("test"); } }
+				    if (true && false) { while (false) { Console.WriteLine("test"); } }
 				  }
 				}
 				""");
@@ -55,6 +59,8 @@ class TreeSitterSourceCodeParserTests {
 		assertThat(metrics.imports()).hasSize(1);
 		assertThat(metrics.controlFlowCount()).isEqualTo(2);
 		assertThat(metrics.maximumNestingDepth()).isEqualTo(2);
+		assertThat(metrics.cyclomaticComplexity()).isEqualTo(4);
+		assertThat(metrics.maximumMethodComplexity()).isEqualTo(4);
 		assertThat(metrics.parseError()).isFalse();
 	}
 
@@ -64,7 +70,7 @@ class TreeSitterSourceCodeParserTests {
 				import os
 				class Demo:
 				    def run(self):
-				        if True:
+				        if True and False:
 				            for item in [1]:
 				                print(item)
 				def helper():
@@ -77,6 +83,8 @@ class TreeSitterSourceCodeParserTests {
 		assertThat(metrics.imports()).hasSize(1);
 		assertThat(metrics.controlFlowCount()).isEqualTo(2);
 		assertThat(metrics.maximumNestingDepth()).isEqualTo(2);
+		assertThat(metrics.cyclomaticComplexity()).isEqualTo(4);
+		assertThat(metrics.maximumMethodComplexity()).isEqualTo(4);
 		assertThat(metrics.symbols()).extracting(StructuralSymbol::name).contains("Demo", "run", "helper");
 		assertThat(metrics.parseError()).isFalse();
 	}
@@ -89,7 +97,7 @@ class TreeSitterSourceCodeParserTests {
 				interface Contract { run(): void }
 				class Demo implements Contract {
 				  run() {
-				    if (true) { for (const item of [1]) { console.log(item) } }
+				    if (true && false) { for (const item of [1]) { console.log(item) } }
 				  }
 				}
 				const helper = () => value
@@ -103,8 +111,30 @@ class TreeSitterSourceCodeParserTests {
 		assertThat(metrics.imports()).hasSize(1);
 		assertThat(metrics.controlFlowCount()).isEqualTo(2);
 		assertThat(metrics.maximumNestingDepth()).isEqualTo(2);
+		assertThat(metrics.cyclomaticComplexity()).isEqualTo(4);
+		assertThat(metrics.maximumMethodComplexity()).isEqualTo(4);
 		assertThat(metrics.symbols()).extracting(StructuralSymbol::name).contains("Contract", "Demo", "run", "helper");
 		assertThat(metrics.parseError()).isFalse();
+	}
+
+	@Test
+	void countsSwitchCasesAndExceptionBranchesWithoutDefault() throws Exception {
+		StructuralFileMetrics metrics = parse(new JavaSourceCodeParser(), "Branches.java", """
+				class Branches {
+				  void decide(int value) {
+				    try {
+				      switch (value) {
+				        case 1: break;
+				        case 2: break;
+				        default: break;
+				      }
+				    } catch (RuntimeException exception) { }
+				  }
+				}
+				""");
+
+		assertThat(metrics.cyclomaticComplexity()).isEqualTo(4);
+		assertThat(metrics.maximumMethodComplexity()).isEqualTo(4);
 	}
 
 	private StructuralFileMetrics parse(SourceCodeParser parser, String name, String source) throws Exception {

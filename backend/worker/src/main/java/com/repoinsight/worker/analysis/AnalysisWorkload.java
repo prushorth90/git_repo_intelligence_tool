@@ -72,6 +72,7 @@ public class AnalysisWorkload {
 
 	private void persistStructuralMetrics(UUID analysisId, List<StructuralFileMetrics> structures) {
 		try {
+			jdbcTemplate.update("DELETE FROM method_complexity_metrics WHERE analysis_id = ?", analysisId);
 			jdbcTemplate.update("DELETE FROM source_structure_metrics WHERE analysis_id = ?", analysisId);
 			List<Object[]> rows = new ArrayList<>();
 			for (StructuralFileMetrics metric : structures) {
@@ -79,7 +80,8 @@ public class AnalysisWorkload {
 						UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), metric.classCount(),
 						metric.interfaceCount(), metric.methodCount(), metric.functionCount(), metric.imports().size(),
 						metric.averageMethodLength(), metric.maximumMethodLength(), metric.maximumNestingDepth(),
-						metric.controlFlowCount(), metric.parseError(), objectMapper.writeValueAsString(metric.symbols()),
+						metric.controlFlowCount(), metric.cyclomaticComplexity(), metric.maximumMethodComplexity(),
+						metric.parseError(), objectMapper.writeValueAsString(metric.symbols()),
 						objectMapper.writeValueAsString(metric.imports())
 				});
 			}
@@ -88,9 +90,27 @@ public class AnalysisWorkload {
 					    id, analysis_id, file_path, language, class_count, interface_count,
 					    method_count, function_count, import_count, average_method_length,
 					    maximum_method_length, maximum_nesting_depth, control_flow_count,
-					    parse_error, symbols, imports)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					    cyclomatic_complexity, maximum_method_complexity, parse_error, symbols, imports)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 					""", rows);
+
+			List<Object[]> methodRows = new ArrayList<>();
+			for (StructuralFileMetrics metric : structures) {
+				if (metric.parseError()) continue;
+				metric.symbols().stream()
+						.filter(symbol -> "method".equals(symbol.kind()) || "function".equals(symbol.kind()))
+						.forEach(symbol -> methodRows.add(new Object[] {
+								UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), symbol.name(), symbol.kind(),
+								symbol.startLine(), symbol.endLine(), symbol.length(), symbol.nestingDepth(),
+								symbol.cyclomaticComplexity()
+						}));
+			}
+			jdbcTemplate.batchUpdate("""
+					INSERT INTO method_complexity_metrics (
+					    id, analysis_id, file_path, language, symbol_name, symbol_kind,
+					    start_line, end_line, line_count, nesting_depth, cyclomatic_complexity)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""", methodRows);
 		} catch (JacksonException exception) {
 			throw new IllegalStateException("Structural metadata serialization failed.", exception);
 		}

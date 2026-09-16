@@ -10,4 +10,6 @@ public interface RepositoryAnalysisRepository extends JpaRepository<RepositoryAn
 	List<RepositoryAnalysis> findByRepositoryIdOrderByCreatedAtDesc(UUID repositoryId);
 
 	java.util.Optional<RepositoryAnalysis> findFirstByRepositoryIdAndHistoryIncludedTrueOrderByAnalyzedAtDesc(UUID repositoryId);
+
+	java.util.Optional<RepositoryAnalysis> findFirstByRepositoryIdOrderByAnalyzedAtDesc(UUID repositoryId);
 }

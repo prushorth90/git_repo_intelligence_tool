@@ -27,6 +27,9 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 	private final Set<String> functionNodes;
 	private final Set<String> importNodes;
 	private final Set<String> controlFlowNodes;
+	private final Set<String> decisionNodes;
+	private final Set<String> caseNodes;
+	private final Set<String> logicalExpressionNodes;
 	private final boolean nestedFunctionsAreMethods;
 
 	protected TreeSitterSourceCodeParser(
@@ -38,6 +41,9 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 			Set<String> functionNodes,
 			Set<String> importNodes,
 			Set<String> controlFlowNodes,
+			Set<String> decisionNodes,
+			Set<String> caseNodes,
+			Set<String> logicalExpressionNodes,
 			boolean nestedFunctionsAreMethods) {
 		this.languageName = languageName;
 		this.extensions = extensions;
@@ -47,6 +53,9 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 		this.functionNodes = functionNodes;
 		this.importNodes = importNodes;
 		this.controlFlowNodes = controlFlowNodes;
+		this.decisionNodes = decisionNodes;
+		this.caseNodes = caseNodes;
+		this.logicalExpressionNodes = logicalExpressionNodes;
 		this.nestedFunctionsAreMethods = nestedFunctionsAreMethods;
 	}
 
@@ -94,6 +103,8 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 		private int maximumNesting;
 		private int methodLengthTotal;
 		private int methodLengthMaximum;
+		private int fileDecisionPoints;
+		private int maximumMethodComplexity;
 
 		private Accumulator(Path root, Path sourceFile, byte[] source, TSNode rootNode) {
 			this.relativePath = root.relativize(sourceFile).toString().replace('\\', '/');
@@ -103,15 +114,16 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 
 		private void walk(TSNode node, int controlDepth, boolean insideType) {
 			String type = node.getType();
+			fileDecisionPoints += decisionPoints(node);
 			boolean typeDeclaration = classNodes.contains(type) || interfaceNodes.contains(type);
 			boolean nextInsideType = insideType || typeDeclaration;
 			if (classNodes.contains(type)) {
 				classes++;
-				addSymbol(node, "class", 0);
+				addSymbol(node, "class", 0, 0);
 			}
 			if (interfaceNodes.contains(type)) {
 				interfaces++;
-				addSymbol(node, "interface", 0);
+				addSymbol(node, "interface", 0, 0);
 			}
 			if (methodNodes.contains(type) || (nestedFunctionsAreMethods && insideType && functionNodes.contains(type))) {
 				methods++;
@@ -137,16 +149,18 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 
 		private void addCallable(TSNode node, String kind) {
 			int length = lineLength(node);
+			int complexity = cyclomaticComplexity(node);
 			methodLengthTotal += length;
 			methodLengthMaximum = Math.max(methodLengthMaximum, length);
-			addSymbol(node, kind, maxControlDepth(node, 0));
+			maximumMethodComplexity = Math.max(maximumMethodComplexity, complexity);
+			addSymbol(node, kind, maxControlDepth(node, 0), complexity);
 		}
 
-		private void addSymbol(TSNode node, String kind, int nestingDepth) {
+		private void addSymbol(TSNode node, String kind, int nestingDepth, int complexity) {
 			if (symbols.size() >= MAX_METADATA_ITEMS) return;
 			symbols.add(new StructuralSymbol(
 					symbolName(node), kind, node.getStartPoint().getRow() + 1, node.getEndPoint().getRow() + 1,
-					lineLength(node), nestingDepth));
+					lineLength(node), nestingDepth, complexity));
 		}
 
 		private String symbolName(TSNode node) {
@@ -154,7 +168,7 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 			if ((name == null || name.isNull()) && node.getParent() != null) {
 				name = node.getParent().getChildByFieldName("name");
 			}
-			return name == null || name.isNull() ? "[anonymous]" : text(name).trim();
+			return name == null || name.isNull() ? "[anonymous@" + node.getStartByte() + "]" : text(name).trim();
 		}
 
 		private int maxControlDepth(TSNode node, int depth) {
@@ -164,6 +178,44 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 				maximum = Math.max(maximum, maxControlDepth(node.getNamedChild(index), current));
 			}
 			return maximum;
+		}
+
+		private int cyclomaticComplexity(TSNode callable) {
+			return 1 + callableDecisionPoints(callable, callable);
+		}
+
+		private int callableDecisionPoints(TSNode node, TSNode rootCallable) {
+			if (!node.equals(rootCallable) && isCallable(node.getType())) return 0;
+			int decisions = decisionPoints(node);
+			for (int index = 0; index < node.getNamedChildCount(); index++) {
+				decisions += callableDecisionPoints(node.getNamedChild(index), rootCallable);
+			}
+			return decisions;
+		}
+
+		private boolean isCallable(String type) {
+			return methodNodes.contains(type) || functionNodes.contains(type);
+		}
+
+		private int decisionPoints(TSNode node) {
+			String type = node.getType();
+			int decisions = decisionNodes.contains(type) ? 1 : 0;
+			String caseText = caseNodes.contains(type) ? text(node).stripLeading() : "";
+			if (caseNodes.contains(type) && !caseText.startsWith("default") && !caseText.startsWith("case _")) decisions++;
+			if (logicalExpressionNodes.contains(type)) decisions += directLogicalOperators(node);
+			return decisions;
+		}
+
+		private int directLogicalOperators(TSNode node) {
+			int count = 0;
+			for (int index = 0; index < node.getChildCount(); index++) {
+				TSNode child = node.getChild(index);
+				if (child.isNamed()) continue;
+				String operator = text(child).trim();
+				if ("&&".equals(operator) || "||".equals(operator)
+						|| "and".equals(operator) || "or".equals(operator)) count++;
+			}
+			return count;
 		}
 
 		private int lineLength(TSNode node) {
@@ -180,7 +232,8 @@ public abstract class TreeSitterSourceCodeParser implements SourceCodeParser {
 			int callableCount = methods + functions;
 			return new StructuralFileMetrics(relativePath, languageName, classes, interfaces, methods, functions,
 					List.copyOf(imports), callableCount == 0 ? 0 : (double) methodLengthTotal / callableCount,
-					methodLengthMaximum, maximumNesting, controlFlow, parseError, List.copyOf(symbols));
+					methodLengthMaximum, maximumNesting, controlFlow, 1 + fileDecisionPoints,
+					maximumMethodComplexity, parseError, List.copyOf(symbols));
 		}
 	}
 }

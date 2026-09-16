@@ -14,6 +14,8 @@ public record StructuralFileMetrics(
 		int maximumMethodLength,
 		int maximumNestingDepth,
 		int controlFlowCount,
+		int cyclomaticComplexity,
+		int maximumMethodComplexity,
 		boolean parseError,
 		List<StructuralSymbol> symbols) {
 }

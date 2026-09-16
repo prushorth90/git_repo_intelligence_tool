@@ -18,7 +18,10 @@ public class TypeScriptSourceCodeParser extends TreeSitterSourceCodeParser {
 				Set.of("function_declaration", "generator_function_declaration", "arrow_function"),
 				Set.of("import_statement"),
 				Set.of("if_statement", "for_statement", "for_in_statement", "while_statement", "do_statement",
-						"switch_statement", "catch_clause", "ternary_expression"), false);
+						"switch_statement", "catch_clause", "ternary_expression"),
+				Set.of("if_statement", "for_statement", "for_in_statement", "while_statement", "do_statement",
+						"catch_clause", "ternary_expression"),
+				Set.of("switch_case"), Set.of("binary_expression"), false);
 	}
 
 	@Override

@@ -116,6 +116,38 @@ export type ContributorOverviewResponse = {
   concentratedFiles: ConcentratedFileResponse[]
 }
 
+export type FileComplexityResponse = {
+  filePath: string
+  language: string
+  cyclomaticComplexity: number
+  maximumMethodComplexity: number
+  methodCount: number
+  functionCount: number
+  controlFlowCount: number
+  maximumNestingDepth: number
+}
+
+export type MethodComplexityResponse = {
+  filePath: string
+  language: string
+  symbolName: string
+  symbolKind: string
+  startLine: number
+  endLine: number
+  lineCount: number
+  nestingDepth: number
+  cyclomaticComplexity: number
+}
+
+export type ComplexityOverviewResponse = {
+  analysisId: string | null
+  analyzedAt: string | null
+  scoringFormula: string
+  decisionRules: string[]
+  files: FileComplexityResponse[]
+  methods: MethodComplexityResponse[]
+}
+
 export type GitHubUserResponse = {
   configured: boolean
   connected: boolean
