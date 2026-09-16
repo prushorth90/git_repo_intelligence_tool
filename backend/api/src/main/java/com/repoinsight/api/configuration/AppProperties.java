@@ -1,4 +1,4 @@
-package com.repoinsight.api.config;
+package com.repoinsight.api.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

@@ -84,7 +84,10 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/repositories` | List connected repositories. |
+| `GET` | `/api/repositories/{id}` | Get one connected repository. |
 | `POST` | `/api/repositories` | Connect a repository using `{ "githubUrl": "https://github.com/owner/repository" }`. |
+| `PUT` | `/api/repositories/{id}` | Update a repository using the same URL payload. |
+| `DELETE` | `/api/repositories/{id}` | Delete a repository and its analysis records. |
 | `GET` | `/actuator/health` | Aggregate service health. |
 | `GET` | `/actuator/health/liveness` | Process liveness probe. |
 | `GET` | `/actuator/health/readiness` | Dependency readiness probe. |
@@ -101,3 +104,5 @@ docker compose -f docker/compose.yml config --quiet
 ## Planned Analysis
 
 The worker boundary is ready for future jobs covering repository activity, code churn, ownership concentration, complexity, dependency relationships, pull request metrics, hotspots, and engineering risk. Job retries, GitHub authentication, collection, scoring, and result schemas should be designed as the next phase rather than added to the placeholder consumer.
+
+The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.

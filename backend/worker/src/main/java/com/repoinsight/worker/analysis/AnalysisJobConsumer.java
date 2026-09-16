@@ -24,9 +24,9 @@ public class AnalysisJobConsumer {
 
 	@Scheduled(initialDelay = 10_000, fixedDelayString = "${app.analysis.poll-delay-ms}")
 	public void poll() {
-		String repositoryId = redisTemplate.opsForList().leftPop(queueName);
-		if (repositoryId != null) {
-			logger.info("Accepted placeholder analysis job for repository {}", repositoryId);
+		String analysisJobId = redisTemplate.opsForList().leftPop(queueName);
+		if (analysisJobId != null) {
+			logger.info("Accepted placeholder analysis job {}", analysisJobId);
 		}
 	}
 }

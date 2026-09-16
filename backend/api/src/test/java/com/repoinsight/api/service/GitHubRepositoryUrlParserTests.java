@@ -1,21 +1,19 @@
-package com.repoinsight.api.repository;
+package com.repoinsight.api.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.repoinsight.api.analysis.AnalysisJobPublisher;
+import com.repoinsight.api.service.exception.InvalidRepositoryUrlException;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-class RepositoryServiceTests {
+class GitHubRepositoryUrlParserTests {
 
-	private final RepositoryService service = new RepositoryService(
-			Mockito.mock(ConnectedRepositoryRepository.class), Mockito.mock(AnalysisJobPublisher.class));
+	private final GitHubRepositoryUrlParser parser = new GitHubRepositoryUrlParser();
 
 	@Test
 	void parsesAndNormalizesGithubUrl() {
-		RepositoryService.RepositoryCoordinates result = service.parse("https://github.com/spring-projects/spring-boot.git");
+		GitHubRepositoryCoordinates result = parser.parse("https://github.com/spring-projects/spring-boot.git");
 
 		assertThat(result.owner()).isEqualTo("spring-projects");
 		assertThat(result.name()).isEqualTo("spring-boot");
@@ -24,7 +22,7 @@ class RepositoryServiceTests {
 
 	@Test
 	void rejectsNonGithubUrl() {
-		assertThatThrownBy(() -> service.parse("https://example.com/owner/repository"))
+		assertThatThrownBy(() -> parser.parse("https://example.com/owner/repository"))
 				.isInstanceOf(InvalidRepositoryUrlException.class);
 	}
 }

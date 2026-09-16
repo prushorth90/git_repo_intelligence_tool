@@ -1,15 +1,15 @@
-package com.repoinsight.api.config;
+package com.repoinsight.api.configuration;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+public class WebConfiguration implements WebMvcConfigurer {
 
 	private final AppProperties appProperties;
 
-	public WebConfig(AppProperties appProperties) {
+	public WebConfiguration(AppProperties appProperties) {
 		this.appProperties = appProperties;
 	}
 
@@ -17,6 +17,6 @@ public class WebConfig implements WebMvcConfigurer {
 	public void addCorsMappings(CorsRegistry registry) {
 		registry.addMapping("/api/**")
 				.allowedOrigins(appProperties.cors().allowedOrigin())
-				.allowedMethods("GET", "POST", "OPTIONS");
+				.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
 	}
 }
