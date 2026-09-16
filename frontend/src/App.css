@@ -228,6 +228,8 @@
 .hotspot-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; border: 1px dashed #c5cac2; color: var(--muted); text-align: center; background: rgba(251, 251, 247, .55); }
 .hotspot-empty h2 { margin: 4px 0 0; color: var(--ink); font-size: 16px; }
 .hotspot-empty p { margin: 0; font-size: 11px; }
+.module-list { max-width: 260px; display: flex; flex-wrap: wrap; gap: 4px; }
+.module-list span { padding: 3px 6px; color: var(--muted); background: #e9ebe5; font: 500 8px 'DM Mono', monospace; }
 .pagination-controls { margin-top: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .pagination-controls span { color: var(--muted); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .pagination-controls .icon-button:disabled { cursor: not-allowed; opacity: .35; }

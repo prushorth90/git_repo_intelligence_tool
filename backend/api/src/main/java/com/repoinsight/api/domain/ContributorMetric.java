@@ -14,7 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "contributor_metrics", uniqueConstraints = @UniqueConstraint(columnNames = { "analysis_id", "github_login" }))
+@Table(name = "contributor_metrics", uniqueConstraints = @UniqueConstraint(columnNames = { "analysis_id", "contributor_key" }))
 public class ContributorMetric {
 
 	@Id
@@ -25,8 +25,11 @@ public class ContributorMetric {
 	@JoinColumn(name = "analysis_id", nullable = false)
 	private RepositoryAnalysis analysis;
 
-	@Column(name = "github_login", nullable = false)
-	private String githubLogin;
+	@Column(name = "contributor_key", nullable = false)
+	private String contributorKey;
+
+	@Column(name = "display_name", nullable = false)
+	private String displayName;
 
 	@Column(name = "commit_count", nullable = false)
 	private int commitCount;
@@ -40,19 +43,36 @@ public class ContributorMetric {
 	@Column(name = "ownership_percent")
 	private Double ownershipPercent;
 
+	@Column(name = "files_touched", nullable = false)
+	private int filesTouched;
+
+	@Column(name = "last_activity_at")
+	private java.time.Instant lastActivityAt;
+
+	@Column(name = "primary_modules", nullable = false, columnDefinition = "TEXT")
+	private String primaryModules;
+
+	@Column(name = "weighted_score", nullable = false)
+	private double weightedScore;
+
 	protected ContributorMetric() {
 	}
 
-	public ContributorMetric(RepositoryAnalysis analysis, String githubLogin) {
+	public ContributorMetric(RepositoryAnalysis analysis, String contributorKey) {
 		this.analysis = analysis;
-		this.githubLogin = githubLogin;
+		this.contributorKey = contributorKey;
 	}
 
 	public UUID getId() { return id; }
 	public RepositoryAnalysis getAnalysis() { return analysis; }
-	public String getGithubLogin() { return githubLogin; }
+	public String getContributorKey() { return contributorKey; }
+	public String getDisplayName() { return displayName; }
 	public int getCommitCount() { return commitCount; }
 	public int getAdditions() { return additions; }
 	public int getDeletions() { return deletions; }
 	public Double getOwnershipPercent() { return ownershipPercent; }
+	public int getFilesTouched() { return filesTouched; }
+	public java.time.Instant getLastActivityAt() { return lastActivityAt; }
+	public String getPrimaryModules() { return primaryModules; }
+	public double getWeightedScore() { return weightedScore; }
 }

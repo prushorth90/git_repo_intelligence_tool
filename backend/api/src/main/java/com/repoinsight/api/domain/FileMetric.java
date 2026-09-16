@@ -55,6 +55,18 @@ public class FileMetric {
 	@Column(name = "total_churn", nullable = false)
 	private long totalChurn;
 
+	@Column(name = "top_contributor_name")
+	private String topContributorName;
+
+	@Column(name = "top_ownership_percent")
+	private Double topOwnershipPercent;
+
+	@Column(name = "bus_factor", nullable = false)
+	private int busFactor;
+
+	@Column(name = "concentrated_ownership", nullable = false)
+	private boolean concentratedOwnership;
+
 	private Double complexity;
 
 	@Column(name = "risk_score")
@@ -79,6 +91,10 @@ public class FileMetric {
 	public int getContributorCount() { return contributorCount; }
 	public Instant getLastModifiedAt() { return lastModifiedAt; }
 	public long getTotalChurn() { return totalChurn; }
+	public String getTopContributorName() { return topContributorName; }
+	public Double getTopOwnershipPercent() { return topOwnershipPercent; }
+	public int getBusFactor() { return busFactor; }
+	public boolean isConcentratedOwnership() { return concentratedOwnership; }
 	public Double getComplexity() { return complexity; }
 	public Double getRiskScore() { return riskScore; }
 }

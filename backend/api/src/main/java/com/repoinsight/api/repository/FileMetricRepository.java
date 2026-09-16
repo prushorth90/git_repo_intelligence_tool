@@ -11,4 +11,7 @@ public interface FileMetricRepository extends JpaRepository<FileMetric, UUID> {
 	List<FileMetric> findByAnalysisId(UUID analysisId);
 
 	List<FileMetric> findTop100ByAnalysisIdAndPeriodOrderByTotalChurnDesc(UUID analysisId, HistoryPeriod period);
+
+	List<FileMetric> findTop100ByAnalysisIdAndPeriodAndConcentratedOwnershipTrueOrderByTopOwnershipPercentDesc(
+			UUID analysisId, HistoryPeriod period);
 }

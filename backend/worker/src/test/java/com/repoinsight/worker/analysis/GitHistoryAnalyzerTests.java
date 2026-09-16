@@ -42,6 +42,10 @@ class GitHistoryAnalyzerTests {
 			assertThat(metric.deletions()).isEqualTo(1);
 			assertThat(metric.uniqueContributors()).isEqualTo(2);
 			assertThat(metric.totalChurn()).isEqualTo(5);
+			assertThat(metric.topContributorName()).isEqualTo("Bob");
+			assertThat(metric.topOwnershipPercent()).isBetween(60.0, 62.0);
+			assertThat(metric.busFactor()).isEqualTo(1);
+			assertThat(metric.concentratedOwnership()).isFalse();
 		});
 		assertThat(result.metricsByPeriod().get(HistoryPeriod.DAYS_30)).singleElement().satisfies(metric -> {
 			assertThat(metric.commitCount()).isEqualTo(1);
@@ -49,7 +53,19 @@ class GitHistoryAnalyzerTests {
 			assertThat(metric.deletions()).isEqualTo(1);
 			assertThat(metric.uniqueContributors()).isEqualTo(1);
 			assertThat(metric.lastModifiedAt()).isAfter(Instant.now().minus(30, ChronoUnit.DAYS));
+			assertThat(metric.topOwnershipPercent()).isEqualTo(100.0);
+			assertThat(metric.concentratedOwnership()).isTrue();
 		});
+		assertThat(result.fileOwnership()).hasSize(2)
+				.extracting(FileOwnershipResult::displayName)
+				.containsExactlyInAnyOrder("Alice", "Bob");
+		assertThat(result.contributors()).hasSize(2).allSatisfy(contributor -> {
+			assertThat(contributor.totalCommits()).isEqualTo(1);
+			assertThat(contributor.filesTouched()).isEqualTo(1);
+			assertThat(contributor.primaryModules()).containsExactly("src");
+		});
+		assertThat(result.contributors().get(0).displayName()).isEqualTo("Bob");
+		assertThat(result.contributors().get(0).estimatedOwnershipPercent()).isBetween(60.0, 62.0);
 	}
 
 	private void commit(Git git, String message, String name, String email, Instant instant) throws Exception {

@@ -1,4 +1,4 @@
-import type { AnalysisJobResponse, ApiProblem, CodeChurnRankingResponse, CreateRepositoryRequest, CsrfTokenResponse, GitHubRepositoryPageResponse, GitHubUserResponse, HistoryPeriod, RepositoryResponse } from './types'
+import type { AnalysisJobResponse, ApiProblem, CodeChurnRankingResponse, ContributorOverviewResponse, CreateRepositoryRequest, CsrfTokenResponse, GitHubRepositoryPageResponse, GitHubUserResponse, HistoryPeriod, RepositoryResponse } from './types'
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() ?? ''
 const apiBaseUrl = configuredApiUrl.replace(/\/$/, '')
@@ -114,5 +114,9 @@ export const repositoryApi = {
   codeChurn(repositoryId: string, period: HistoryPeriod, signal?: AbortSignal) {
     const params = new URLSearchParams({ period })
     return request<CodeChurnRankingResponse>(`/api/repositories/${repositoryId}/code-churn?${params}`, { signal })
+  },
+
+  contributorOwnership(repositoryId: string, signal?: AbortSignal) {
+    return request<ContributorOverviewResponse>(`/api/repositories/${repositoryId}/contributors`, { signal })
   },
 }

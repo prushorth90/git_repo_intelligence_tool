@@ -9,7 +9,11 @@ public record FileHistoryMetric(
 		int additions,
 		int deletions,
 		int uniqueContributors,
-		Instant lastModifiedAt) {
+		Instant lastModifiedAt,
+		String topContributorName,
+		double topOwnershipPercent,
+		int busFactor,
+		boolean concentratedOwnership) {
 
 	public long totalChurn() {
 		return (long) additions + deletions;

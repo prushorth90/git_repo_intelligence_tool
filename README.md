@@ -108,6 +108,7 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `POST` | `/api/repositories/{id}/analysis-jobs` | Persist a queued job and publish it to Redis. |
 | `POST` | `/api/repositories/{id}/analysis-jobs/{jobId}/cancel` | Cancel a queued or running job. |
 | `GET` | `/api/repositories/{id}/code-churn?period=DAYS_90` | Rank files by churn for `DAYS_30`, `DAYS_90`, `MONTHS_6`, or `ALL`. |
+| `GET` | `/api/repositories/{id}/contributors` | Return weighted contributor ownership, modules, bus factor, and concentrated files. |
 | `GET` | `/api/auth/github/start` | Start the server-managed GitHub OAuth flow. |
 | `GET` | `/login/oauth2/code/github` | Spring Security OAuth callback registered with GitHub. |
 | `GET` | `/api/auth/github/me` | Return the sanitized connected GitHub account or disconnected state. |
@@ -139,6 +140,10 @@ Workers use JGit to clone only HTTPS GitHub URLs into owner-only temporary direc
 Baseline analysis persists source file count, relevant text size, language distribution, directory structure (up to four levels), file-extension counts, and whether history was included. It skips symlinks, binary formats/content, oversized files, generated/minified artifacts, lock files, and directories such as `.git`, `node_modules`, `target`, `build`, `dist`, `vendor`, `coverage`, `.next`, virtual environments, IDE metadata, and generated output. Ownership, complexity, dependency, pull-request, and composite-risk analyzers remain future phases.
 
 When **Include Git history** is selected, the worker traverses commits once with JGit and diffs each commit against its first parent. For every relevant source path it stores commit count, added lines, removed lines, unique author count, latest modification time, and total churn (`additions + deletions`) for 30-day, 90-day, 6-month, and all-time windows. Merge commits use first-parent comparison to avoid double-counting merged history. The Code Hotspots page queries the latest completed history-enabled analysis and displays the top 100 files per period.
+
+Contributor ownership is calculated per file from 50% line-churn share, 30% file-touch share, and 20% recency-weighted activity share. This prevents raw commit count from dominating ownership estimates. Contributor repository ownership is the file-churn-weighted average of those per-file shares. The first path segment is treated as the logical module, and each contributor's three highest weighted modules are retained.
+
+A file has concentrated ownership when its top contributor owns at least 70% of weighted changes. File bus factor is the minimum number of contributors whose cumulative ownership reaches 50%; repository bus factor applies the same rule to contributor repository ownership. The Contributors page displays total unique commits, files touched, lines changed, recent activity, estimated ownership, primary modules, and concentrated-file alerts.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
 

@@ -86,6 +86,36 @@ export type CodeChurnRankingResponse = {
   files: FileChurnResponse[]
 }
 
+export type ContributorOwnershipResponse = {
+  contributorKey: string
+  displayName: string
+  totalCommits: number
+  filesTouched: number
+  additions: number
+  deletions: number
+  estimatedOwnershipPercent: number
+  lastActivityAt: string
+  primaryModules: string[]
+}
+
+export type ConcentratedFileResponse = {
+  filePath: string
+  language: string
+  topContributorName: string
+  topOwnershipPercent: number
+  busFactor: number
+  totalChurn: number
+}
+
+export type ContributorOverviewResponse = {
+  analysisId: string | null
+  analyzedAt: string | null
+  repositoryBusFactor: number
+  concentratedFileCount: number
+  contributors: ContributorOwnershipResponse[]
+  concentratedFiles: ConcentratedFileResponse[]
+}
+
 export type GitHubUserResponse = {
   configured: boolean
   connected: boolean

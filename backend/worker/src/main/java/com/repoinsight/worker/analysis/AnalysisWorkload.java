@@ -109,18 +109,56 @@ public class AnalysisWorkload {
 
 	private void persistHistoryMetrics(UUID analysisId, GitHistoryAnalysisResult history) {
 		if (history.metricsByPeriod().isEmpty()) return;
-		jdbcTemplate.update("DELETE FROM file_metrics WHERE analysis_id = ?", analysisId);
-		List<Object[]> rows = new ArrayList<>();
-		history.metricsByPeriod().forEach((period, metrics) -> metrics.forEach(metric -> rows.add(new Object[] {
-				UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), period.name(), metric.commitCount(),
-				metric.additions(), metric.deletions(), metric.uniqueContributors(), Timestamp.from(metric.lastModifiedAt()), metric.totalChurn()
-		})));
-		jdbcTemplate.batchUpdate("""
-				INSERT INTO file_metrics (
-				    id, analysis_id, file_path, language, period, commit_count, additions, deletions,
-				    contributor_count, last_modified_at, total_churn)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-				""", rows);
+		try {
+			jdbcTemplate.update("DELETE FROM file_ownership_metrics WHERE analysis_id = ?", analysisId);
+			jdbcTemplate.update("DELETE FROM contributor_metrics WHERE analysis_id = ?", analysisId);
+			jdbcTemplate.update("DELETE FROM file_metrics WHERE analysis_id = ?", analysisId);
+			List<Object[]> fileRows = new ArrayList<>();
+			history.metricsByPeriod().forEach((period, metrics) -> metrics.forEach(metric -> fileRows.add(new Object[] {
+					UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), period.name(), metric.commitCount(),
+					metric.additions(), metric.deletions(), metric.uniqueContributors(), Timestamp.from(metric.lastModifiedAt()),
+					metric.totalChurn(), metric.topContributorName(), metric.topOwnershipPercent(), metric.busFactor(),
+					metric.concentratedOwnership()
+			})));
+			jdbcTemplate.batchUpdate("""
+					INSERT INTO file_metrics (
+					    id, analysis_id, file_path, language, period, commit_count, additions, deletions,
+					    contributor_count, last_modified_at, total_churn, top_contributor_name,
+					    top_ownership_percent, bus_factor, concentrated_ownership)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""", fileRows);
+
+			List<Object[]> ownershipRows = history.fileOwnership().stream().map(metric -> new Object[] {
+					UUID.randomUUID(), analysisId, metric.filePath(), metric.contributorKey(), metric.displayName(),
+					metric.commitCount(), metric.additions(), metric.deletions(), Timestamp.from(metric.lastModifiedAt()),
+					metric.ownershipPercent()
+			}).toList();
+			jdbcTemplate.batchUpdate("""
+					INSERT INTO file_ownership_metrics (
+					    id, analysis_id, file_path, contributor_key, display_name, commit_count,
+					    additions, deletions, last_modified_at, ownership_percent)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""", ownershipRows);
+
+			List<Object[]> contributorRows = new ArrayList<>();
+			for (ContributorOwnershipResult contributor : history.contributors()) {
+				contributorRows.add(new Object[] {
+						UUID.randomUUID(), analysisId, contributor.contributorKey(), contributor.displayName(),
+						contributor.totalCommits(), contributor.additions(), contributor.deletions(),
+						contributor.estimatedOwnershipPercent(), contributor.filesTouched(),
+						Timestamp.from(contributor.lastActivityAt()),
+						objectMapper.writeValueAsString(contributor.primaryModules()), contributor.weightedScore()
+				});
+			}
+			jdbcTemplate.batchUpdate("""
+					INSERT INTO contributor_metrics (
+					    id, analysis_id, contributor_key, display_name, commit_count, additions, deletions,
+					    ownership_percent, files_touched, last_activity_at, primary_modules, weighted_score)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					""", contributorRows);
+		} catch (JacksonException exception) {
+			throw new IllegalStateException("Contributor module serialization failed.", exception);
+		}
 	}
 
 	private void checkCancelled(UUID jobId, Predicate<UUID> cancelled) {
