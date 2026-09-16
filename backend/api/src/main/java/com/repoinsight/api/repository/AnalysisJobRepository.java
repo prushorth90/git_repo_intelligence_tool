@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, UUID> {
 	List<AnalysisJob> findByRepositoryIdOrderByRequestedAtDesc(UUID repositoryId);
+
+	boolean existsByRepositoryIdAndStatusIn(UUID repositoryId, List<com.repoinsight.api.domain.AnalysisJobStatus> statuses);
 }

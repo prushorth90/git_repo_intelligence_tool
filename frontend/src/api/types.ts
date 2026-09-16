@@ -19,7 +19,7 @@ export type CreateRepositoryRequest = {
   githubUrl: string
 }
 
-export type AnalysisJobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+export type AnalysisJobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
 
 export type AnalysisJobResponse = {
   id: string
@@ -28,7 +28,9 @@ export type AnalysisJobResponse = {
   requestedAt: string
   startedAt: string | null
   completedAt: string | null
-  failureMessage: string | null
+  retryCount: number
+  progressPercentage: number
+  failureReason: string | null
 }
 
 export type ApiProblem = {

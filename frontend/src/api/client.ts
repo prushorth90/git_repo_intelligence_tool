@@ -95,4 +95,18 @@ export const repositoryApi = {
   analysisHistory(repositoryId: string, signal?: AbortSignal) {
     return request<AnalysisJobResponse[]>(`/api/repositories/${repositoryId}/analysis-jobs`, { signal })
   },
+
+  async requestAnalysis(repositoryId: string) {
+    return request<AnalysisJobResponse>(`/api/repositories/${repositoryId}/analysis-jobs`, {
+      method: 'POST',
+      headers: await csrfHeaders(),
+    })
+  },
+
+  async cancelAnalysis(repositoryId: string, jobId: string) {
+    return request<AnalysisJobResponse>(`/api/repositories/${repositoryId}/analysis-jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: await csrfHeaders(),
+    })
+  },
 }

@@ -9,6 +9,9 @@ import com.repoinsight.api.service.exception.GitHubApiException;
 import com.repoinsight.api.service.exception.GitHubRateLimitException;
 import com.repoinsight.api.service.exception.RepositoryAlreadyConnectedException;
 import com.repoinsight.api.service.exception.RepositoryNotFoundException;
+import com.repoinsight.api.service.exception.AnalysisJobAlreadyActiveException;
+import com.repoinsight.api.service.exception.AnalysisJobNotCancellableException;
+import com.repoinsight.api.service.exception.AnalysisJobNotFoundException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +36,16 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(RepositoryNotFoundException.class)
 	public ProblemDetail repositoryNotFound(RepositoryNotFoundException exception) {
 		return problem(HttpStatus.NOT_FOUND, exception.getMessage());
+	}
+
+	@ExceptionHandler(AnalysisJobNotFoundException.class)
+	public ProblemDetail analysisJobNotFound(AnalysisJobNotFoundException exception) {
+		return problem(HttpStatus.NOT_FOUND, exception.getMessage());
+	}
+
+	@ExceptionHandler({ AnalysisJobAlreadyActiveException.class, AnalysisJobNotCancellableException.class })
+	public ProblemDetail analysisJobConflict(RuntimeException exception) {
+		return problem(HttpStatus.CONFLICT, exception.getMessage());
 	}
 
 	@ExceptionHandler(GitHubOAuthNotConfiguredException.class)

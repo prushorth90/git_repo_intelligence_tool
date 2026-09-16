@@ -71,13 +71,24 @@ services:
       context: ..
       dockerfile: docker/worker.Dockerfile
     environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-repo_intelligence}
+      DATABASE_USERNAME: ${POSTGRES_USER:-repo_intelligence}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-repo_intelligence}
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       ANALYSIS_QUEUE_NAME: ${ANALYSIS_QUEUE_NAME:-analysis:pending}
       ANALYSIS_POLL_DELAY_MS: ${ANALYSIS_POLL_DELAY_MS:-2000}
-    ports:
-      - "${WORKER_PORT:-8081}:8081"
+      ANALYSIS_PROCESSING_QUEUE_NAME: ${ANALYSIS_PROCESSING_QUEUE_NAME:-analysis:processing}
+      ANALYSIS_MAX_RETRIES: ${ANALYSIS_MAX_RETRIES:-3}
+      ANALYSIS_STEP_DELAY_MS: ${ANALYSIS_STEP_DELAY_MS:-250}
+      ANALYSIS_RECOVERY_DELAY_MS: ${ANALYSIS_RECOVERY_DELAY_MS:-30000}
+      ANALYSIS_STALE_AFTER_SECONDS: ${ANALYSIS_STALE_AFTER_SECONDS:-120}
+      ANALYSIS_RECONCILIATION_DELAY_MS: ${ANALYSIS_RECONCILIATION_DELAY_MS:-30000}
+    expose:
+      - "8081"
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:

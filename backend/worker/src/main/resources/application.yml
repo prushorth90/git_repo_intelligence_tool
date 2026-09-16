@@ -1,6 +1,10 @@
 spring:
   application:
     name: repository-intelligence-worker
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/repo_intelligence}
+    username: ${DATABASE_USERNAME:repo_intelligence}
+    password: ${DATABASE_PASSWORD:repo_intelligence}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -23,4 +27,11 @@ management:
 app:
   analysis:
     queue-name: ${ANALYSIS_QUEUE_NAME:analysis:pending}
+    processing-queue-name: ${ANALYSIS_PROCESSING_QUEUE_NAME:analysis:processing}
     poll-delay-ms: ${ANALYSIS_POLL_DELAY_MS:2000}
+    max-retries: ${ANALYSIS_MAX_RETRIES:3}
+    step-delay-ms: ${ANALYSIS_STEP_DELAY_MS:250}
+    worker-id: ${ANALYSIS_WORKER_ID:${HOSTNAME:local-worker}}
+    recovery-delay-ms: ${ANALYSIS_RECOVERY_DELAY_MS:30000}
+    stale-after-seconds: ${ANALYSIS_STALE_AFTER_SECONDS:120}
+    reconciliation-delay-ms: ${ANALYSIS_RECONCILIATION_DELAY_MS:30000}

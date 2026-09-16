@@ -13,7 +13,9 @@ public record AnalysisJobResponse(
 		Instant requestedAt,
 		Instant startedAt,
 		Instant completedAt,
-		String failureMessage) {
+		int retryCount,
+		int progressPercentage,
+		String failureReason) {
 
 	public static AnalysisJobResponse from(AnalysisJob job) {
 		return new AnalysisJobResponse(
@@ -23,6 +25,8 @@ public record AnalysisJobResponse(
 				job.getRequestedAt(),
 				job.getStartedAt(),
 				job.getCompletedAt(),
-				job.getFailureMessage());
+				job.getRetryCount(),
+				job.getProgressPercentage(),
+				job.getFailureReason());
 	}
 }

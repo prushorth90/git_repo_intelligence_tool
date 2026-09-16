@@ -1,6 +1,6 @@
 # Repository Intelligence
 
-Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend uses live backend data for repository listing, creation, details, and analysis-job history while analytical metrics remain mocked. The backend stores repository coordinates, caches repository reads, and queues placeholder analysis work. It does not yet clone repositories or calculate analytics.
+Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend uses live backend data for repository listing, creation, details, and analysis-job history while analytical metrics remain mocked. The backend stores repository coordinates, caches repository reads, and queues asynchronous analysis work. It does not yet clone repositories or calculate production analytics.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ flowchart LR
 | --- | --- |
 | `frontend/` | React 19, TypeScript, React Router, and Recharts workspace with live repository data and mocked analytics. |
 | `backend/api/` | Java 21 Spring Boot 4.1.1 REST API, persistence, Flyway migrations, Redis caching, and job publishing. |
-| `backend/worker/` | Java 21 Spring Boot 4.1.1 process that consumes queued repository IDs. Analytics are a placeholder. |
+| `backend/worker/` | Java 21 Spring Boot 4.1.1 process that atomically claims Redis jobs and persists progress, retries, completion, cancellation, and failures. |
 | `infrastructure/` | Infrastructure ownership notes and future deployment definitions. |
 | `docker/` | Multi-stage images, Nginx routing, and the local Compose stack. |
 
@@ -29,7 +29,13 @@ cp .env.example .env
 docker compose --env-file .env -f docker/compose.yml up --build
 ```
 
-Open <http://localhost:5173>. The API is available at <http://localhost:8080> and the worker health endpoint at <http://localhost:8081/actuator/health>.
+Open <http://localhost:5173>. The API is available at <http://localhost:8080>. Worker health endpoints are exposed only inside the Compose network so the service can be scaled without host-port conflicts.
+
+Run multiple workers concurrently:
+
+```bash
+docker compose --env-file .env -f docker/compose.yml up --build --scale worker=3
+```
 
 Stop the stack while preserving database and Redis volumes:
 
@@ -80,7 +86,9 @@ Configuration is externalized through environment variables. Defaults are suitab
 | `SESSION_COOKIE_SAME_SITE` | `lax` | API session cookie |
 | `ANALYSIS_QUEUE_NAME` | `analysis:pending` | API, worker |
 | `ANALYSIS_POLL_DELAY_MS` | `2000` | Worker |
-| `API_PORT` / `WORKER_PORT` | `8080` / `8081` | Services |
+| `API_PORT` | `8080` | API |
+| `ANALYSIS_MAX_RETRIES` | `3` | Worker |
+| `ANALYSIS_STALE_AFTER_SECONDS` | `120` | Worker lease recovery |
 
 `POSTGRES_PORT`, `REDIS_PORT`, and `FRONTEND_PORT` control Docker host port mappings and default to `5432`, `6379`, and `5173`.
 
@@ -96,6 +104,8 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `PUT` | `/api/repositories/{id}` | Update a repository using the same URL payload. |
 | `DELETE` | `/api/repositories/{id}` | Delete a repository and its analysis records. |
 | `GET` | `/api/repositories/{id}/analysis-jobs` | List persisted analysis jobs for a repository. |
+| `POST` | `/api/repositories/{id}/analysis-jobs` | Persist a queued job and publish it to Redis. |
+| `POST` | `/api/repositories/{id}/analysis-jobs/{jobId}/cancel` | Cancel a queued or running job. |
 | `GET` | `/api/auth/github/start` | Start the server-managed GitHub OAuth flow. |
 | `GET` | `/login/oauth2/code/github` | Spring Security OAuth callback registered with GitHub. |
 | `GET` | `/api/auth/github/me` | Return the sanitized connected GitHub account or disconnected state. |
@@ -116,9 +126,11 @@ cd frontend && npm run build && npm run lint
 docker compose -f docker/compose.yml config --quiet
 ```
 
-## Planned Analysis
+## Analysis Workers
 
-The worker boundary is ready for future jobs covering repository activity, code churn, ownership concentration, complexity, dependency relationships, pull request metrics, hotspots, and engineering risk. Job retries, GitHub authentication, collection, scoring, and result schemas should be designed as the next phase rather than added to the placeholder consumer.
+HTTP requests only persist `AnalysisJob` records and publish IDs after the database transaction commits. Workers atomically move Redis messages from `analysis:pending` to `analysis:processing`, then claim the PostgreSQL row with a compare-and-set update. This allows multiple replicas to consume concurrently without processing the same job twice.
+
+Jobs move through `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, or `CANCELLED` and retain request/start/completion timestamps, retry count, failure reason, progress percentage, heartbeat, and worker ID. Reconciliation republishes stranded queued rows, while heartbeat lease recovery returns jobs abandoned by crashed workers to the queue. The current workload is a staged placeholder for future repository activity, churn, ownership, complexity, dependency, pull-request, hotspot, and risk analyzers.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
 

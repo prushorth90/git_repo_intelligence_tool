@@ -40,8 +40,20 @@ public class AnalysisJob {
 	@Column(name = "completed_at")
 	private Instant completedAt;
 
-	@Column(name = "failure_message", columnDefinition = "TEXT")
-	private String failureMessage;
+	@Column(name = "failure_reason", columnDefinition = "TEXT")
+	private String failureReason;
+
+	@Column(name = "retry_count", nullable = false)
+	private int retryCount;
+
+	@Column(name = "progress_percentage", nullable = false)
+	private int progressPercentage;
+
+	@Column(name = "worker_id")
+	private String workerId;
+
+	@Column(name = "heartbeat_at")
+	private Instant heartbeatAt;
 
 	protected AnalysisJob() {
 	}
@@ -49,7 +61,16 @@ public class AnalysisJob {
 	public AnalysisJob(Repository repository) {
 		this.repository = repository;
 		this.status = AnalysisJobStatus.QUEUED;
+		this.progressPercentage = 0;
 		this.requestedAt = Instant.now();
+	}
+
+	public boolean cancel() {
+		if (status != AnalysisJobStatus.QUEUED && status != AnalysisJobStatus.RUNNING) return false;
+		status = AnalysisJobStatus.CANCELLED;
+		completedAt = Instant.now();
+		failureReason = null;
+		return true;
 	}
 
 	public UUID getId() { return id; }
@@ -58,5 +79,9 @@ public class AnalysisJob {
 	public Instant getRequestedAt() { return requestedAt; }
 	public Instant getStartedAt() { return startedAt; }
 	public Instant getCompletedAt() { return completedAt; }
-	public String getFailureMessage() { return failureMessage; }
+	public String getFailureReason() { return failureReason; }
+	public int getRetryCount() { return retryCount; }
+	public int getProgressPercentage() { return progressPercentage; }
+	public String getWorkerId() { return workerId; }
+	public Instant getHeartbeatAt() { return heartbeatAt; }
 }

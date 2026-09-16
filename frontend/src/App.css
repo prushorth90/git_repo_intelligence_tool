@@ -213,6 +213,12 @@
 .github-repository-card__footer small { color: var(--muted); font-size: 9px; }
 .catalog-message { margin: 12px 0 0 !important; color: var(--green) !important; }
 .catalog-message--error { color: var(--danger) !important; }
+.command-error { padding: 10px 12px; border: 1px solid #e5bbb5; color: var(--danger); background: #faeeec; font-size: 11px; }
+.job-progress { min-width: 105px; display: flex; align-items: center; gap: 8px; }
+.job-progress > div { width: 72px; height: 5px; overflow: hidden; background: #e1e4dd; }
+.job-progress i { height: 100%; display: block; background: var(--green); transition: width .25s ease; }
+.job-progress span { color: var(--muted); font: 500 9px 'DM Mono', monospace; }
+.failure-summary { padding: 14px 18px; display: grid; gap: 4px; border-top: 1px solid #e5bbb5; color: var(--danger); background: #faeeec; font-size: 10px; }
 .pagination-controls { margin-top: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .pagination-controls span { color: var(--muted); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .pagination-controls .icon-button:disabled { cursor: not-allowed; opacity: .35; }
