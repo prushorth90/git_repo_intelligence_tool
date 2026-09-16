@@ -4,19 +4,6 @@ export type TrendPoint = {
   churn: number
 }
 
-export type RepositorySummary = {
-  id: string
-  name: string
-  organization: string
-  language: string
-  branch: string
-  healthScore: number
-  commits: number
-  contributors: number
-  lastAnalyzed: string
-  status: 'Healthy' | 'Attention' | 'At risk'
-}
-
 export type Hotspot = {
   path: string
   language: string
@@ -45,45 +32,6 @@ export type PullRequest = {
   comments: number
   changedFiles: number
 }
-
-export const repositories: RepositorySummary[] = [
-  {
-    id: 'atlas-web',
-    name: 'atlas-web',
-    organization: 'northstar-labs',
-    language: 'TypeScript',
-    branch: 'main',
-    healthScore: 82,
-    commits: 2847,
-    contributors: 24,
-    lastAnalyzed: '12 minutes ago',
-    status: 'Healthy',
-  },
-  {
-    id: 'payments-api',
-    name: 'payments-api',
-    organization: 'northstar-labs',
-    language: 'Java',
-    branch: 'main',
-    healthScore: 68,
-    commits: 1932,
-    contributors: 16,
-    lastAnalyzed: '1 hour ago',
-    status: 'Attention',
-  },
-  {
-    id: 'event-pipeline',
-    name: 'event-pipeline',
-    organization: 'northstar-labs',
-    language: 'Go',
-    branch: 'trunk',
-    healthScore: 54,
-    commits: 1108,
-    contributors: 11,
-    lastAnalyzed: 'Yesterday',
-    status: 'At risk',
-  },
-]
 
 export const activityTrend: TrendPoint[] = [
   { label: 'Apr', commits: 188, churn: 12 },

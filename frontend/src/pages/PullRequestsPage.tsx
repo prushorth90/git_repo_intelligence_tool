@@ -18,6 +18,7 @@ const columns: TableColumn<PullRequest>[] = [
 
 export function PullRequestsPage() {
   const { repository } = useRepository()
+  if (!repository) return null
   return (
     <div className="page-stack">
       <PageHeader eyebrow={`${repository.name} / Delivery`} title="Pull requests" description="Review throughput, collaboration load, and cycle-time signals." />

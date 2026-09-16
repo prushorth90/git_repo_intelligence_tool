@@ -14,8 +14,8 @@ import {
   X,
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { RepositoryContext } from '../context/RepositoryContext'
-import { repositories } from '../data/mockData'
+import { useRepository } from '../context/RepositoryContext'
+import { WorkspaceState } from './WorkspaceState'
 
 const navigation = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,13 +39,15 @@ const pageNames: Record<string, string> = {
 
 export function AppShell() {
   const location = useLocation()
-  const [repositoryId, setRepositoryId] = useState(repositories[0].id)
+  const { repositories, repositoryId, setRepositoryId, loadState, error, reload } = useRepository()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const repository = repositories.find((item) => item.id === repositoryId) ?? repositories[0]
+  const emptyWorkspace = loadState === 'success' && repositories.length === 0 && location.pathname !== '/repositories'
+  const currentPageName = location.pathname.startsWith('/repositories/')
+    ? 'Repository Details'
+    : (pageNames[location.pathname] ?? 'Workspace')
 
   return (
-    <RepositoryContext.Provider value={{ repository, repositoryId, setRepositoryId }}>
-      <div className="app-shell">
+    <div className="app-shell">
         <aside className={`sidebar ${mobileNavOpen ? 'sidebar--open' : ''}`}>
           <NavLink className="brand" to="/" onClick={() => setMobileNavOpen(false)}>
             <span className="brand-mark"><Radar size={19} /></span>
@@ -72,7 +74,7 @@ export function AppShell() {
             <span className="status-dot" />
             <div>
               <strong>Analysis engine</strong>
-              <span>Mock workspace ready</span>
+              <span>{loadState === 'success' ? 'API connected' : loadState === 'error' ? 'API unavailable' : 'Connecting...'}</span>
             </div>
           </div>
         </aside>
@@ -89,17 +91,18 @@ export function AppShell() {
             </button>
             <div className="topbar-context">
               <span className="eyebrow">Engineering intelligence</span>
-              <strong>{pageNames[location.pathname] ?? 'Workspace'}</strong>
+              <strong>{currentPageName}</strong>
             </div>
 
             <label className="repository-selector">
               <span className="repository-selector__icon"><Boxes size={16} /></span>
               <span className="repository-selector__copy">
                 <small>Repository</small>
-                <select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
-                  {repositories.map((item) => (
-                    <option value={item.id} key={item.id}>{item.organization}/{item.name}</option>
-                  ))}
+                <select disabled={loadState !== 'success' || repositories.length === 0} value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
+                  {loadState === 'loading' && <option value="">Loading repositories...</option>}
+                  {loadState === 'error' && <option value="">Repositories unavailable</option>}
+                  {loadState === 'success' && repositories.length === 0 && <option value="">No repositories</option>}
+                  {repositories.map((item) => <option value={item.id} key={item.id}>{item.fullName}</option>)}
                 </select>
               </span>
               <ChevronDown size={15} />
@@ -107,14 +110,16 @@ export function AppShell() {
           </header>
 
           <main className="page-content">
-            <Outlet />
+            {loadState === 'loading' && <WorkspaceState state="loading" />}
+            {loadState === 'error' && <WorkspaceState message={error} onRetry={reload} state="error" />}
+            {emptyWorkspace && <WorkspaceState state="empty" />}
+            {loadState === 'success' && !emptyWorkspace && <Outlet />}
           </main>
         </div>
 
         {mobileNavOpen && (
           <button className="nav-scrim" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} type="button" />
         )}
-      </div>
-    </RepositoryContext.Provider>
+    </div>
   )
 }

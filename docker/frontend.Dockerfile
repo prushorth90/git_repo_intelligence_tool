@@ -1,5 +1,7 @@
 FROM node:22-alpine AS build
 WORKDIR /workspace
+ARG VITE_API_URL=""
+ENV VITE_API_URL=$VITE_API_URL
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend ./

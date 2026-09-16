@@ -27,6 +27,7 @@ const columns: TableColumn<Dependency>[] = [
 
 export function DependenciesPage() {
   const { repository } = useRepository()
+  if (!repository) return null
   return (
     <div className="page-stack">
       <PageHeader eyebrow={`${repository.name} / Supply chain`} title="Dependencies" description="Version freshness and vulnerability posture across the dependency graph." />

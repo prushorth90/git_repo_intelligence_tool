@@ -19,6 +19,7 @@ const columns: TableColumn<Contributor>[] = [
 
 export function ContributorsPage() {
   const { repository } = useRepository()
+  if (!repository) return null
   return (
     <div className="page-stack">
       <PageHeader eyebrow={`${repository.name} / Ownership`} title="Contributors" description="Contribution patterns, code ownership, and areas of concentrated knowledge." />

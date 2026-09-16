@@ -23,6 +23,7 @@ const columns: TableColumn<Hotspot>[] = [
 
 export function HotspotsPage() {
   const { repository } = useRepository()
+  if (!repository) return null
 
   return (
     <div className="page-stack">

@@ -49,6 +49,7 @@ const hotspotColumns: TableColumn<Hotspot>[] = [
 
 export function DashboardPage() {
   const { repository } = useRepository()
+  if (!repository) return null
 
   return (
     <div className="page-stack">

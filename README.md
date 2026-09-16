@@ -1,12 +1,12 @@
 # Repository Intelligence
 
-Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend currently presents a routed, mock-data engineering workspace; the backend separately stores repository coordinates, caches repository reads, and queues placeholder analysis work. It does not yet clone repositories or calculate analytics.
+Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend uses live backend data for repository listing, creation, details, and analysis-job history while analytical metrics remain mocked. The backend stores repository coordinates, caches repository reads, and queues placeholder analysis work. It does not yet clone repositories or calculate analytics.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Browser[React + TypeScript mock workspace] -.->|future REST integration| API[Spring Boot API]
+    Browser[React + TypeScript] -->|typed REST client| API[Spring Boot API]
     API -->|repositories + migrations| PostgreSQL[(PostgreSQL)]
     API -->|cache + pending jobs| Redis[(Redis)]
     Redis -->|analysis:pending| Worker[Spring Boot Worker]
@@ -14,7 +14,7 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| `frontend/` | React 19, TypeScript, React Router, and Recharts workspace using local mock intelligence data. |
+| `frontend/` | React 19, TypeScript, React Router, and Recharts workspace with live repository data and mocked analytics. |
 | `backend/api/` | Java 21 Spring Boot 4.1.1 REST API, persistence, Flyway migrations, Redis caching, and job publishing. |
 | `backend/worker/` | Java 21 Spring Boot 4.1.1 process that consumes queued repository IDs. Analytics are a placeholder. |
 | `infrastructure/` | Infrastructure ownership notes and future deployment definitions. |
@@ -57,7 +57,7 @@ cd backend/worker && ./gradlew bootRun
 cd frontend && npm install && npm run dev
 ```
 
-Vite can proxy `/api` to `http://localhost:8080`, but the current frontend intentionally makes no backend requests. API integration is deferred to a later phase.
+Vite proxies `/api` to `http://localhost:8080` when `VITE_API_URL` is empty. Set `VITE_API_URL` to an absolute API origin for split-host development or production deployments. Docker uses same-origin Nginx routing by default.
 
 ## Configuration
 
@@ -70,7 +70,8 @@ Configuration is externalized through environment variables. Defaults are suitab
 | `DATABASE_PASSWORD` | `repo_intelligence` | API |
 | `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | API, worker |
 | `REDIS_PASSWORD` | empty | API, worker |
-| `FRONTEND_URL` | `http://localhost:5173` | API CORS |
+| `FRONTEND_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | API CORS |
+| `VITE_API_URL` | empty (same origin) | Frontend build |
 | `ANALYSIS_QUEUE_NAME` | `analysis:pending` | API, worker |
 | `ANALYSIS_POLL_DELAY_MS` | `2000` | Worker |
 | `API_PORT` / `WORKER_PORT` | `8080` / `8081` | Services |
@@ -88,6 +89,7 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `POST` | `/api/repositories` | Connect a repository using `{ "githubUrl": "https://github.com/owner/repository" }`. |
 | `PUT` | `/api/repositories/{id}` | Update a repository using the same URL payload. |
 | `DELETE` | `/api/repositories/{id}` | Delete a repository and its analysis records. |
+| `GET` | `/api/repositories/{id}/analysis-jobs` | List persisted analysis jobs for a repository. |
 | `GET` | `/actuator/health` | Aggregate service health. |
 | `GET` | `/actuator/health/liveness` | Process liveness probe. |
 | `GET` | `/actuator/health/readiness` | Dependency readiness probe. |
