@@ -219,6 +219,9 @@
 .job-progress i { height: 100%; display: block; background: var(--green); transition: width .25s ease; }
 .job-progress span { color: var(--muted); font: 500 9px 'DM Mono', monospace; }
 .failure-summary { padding: 14px 18px; display: grid; gap: 4px; border-top: 1px solid #e5bbb5; color: var(--danger); background: #faeeec; font-size: 10px; }
+.analysis-action { display: flex; align-items: center; gap: 12px; }
+.analysis-action label { min-height: 40px; padding: 0 12px; display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); color: var(--muted); background: var(--paper); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; white-space: nowrap; }
+.analysis-action input { accent-color: var(--green); }
 .pagination-controls { margin-top: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .pagination-controls span { color: var(--muted); font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .pagination-controls .icon-button:disabled { cursor: not-allowed; opacity: .35; }
@@ -356,6 +359,8 @@
   .page-header { min-height: 0; display: grid; }
   .page-header h1 { font-size: 28px; }
   .page-header > .primary-button { width: 100%; }
+  .analysis-action { width: 100%; align-items: stretch; flex-direction: column; }
+  .analysis-action .primary-button { width: 100%; }
   .metrics-grid, .metrics-grid--three { grid-template-columns: repeat(2, 1fr); }
   .metric-card, .metric-card:nth-child(3) { min-height: 128px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .metric-card:nth-child(even) { border-right: 0; }

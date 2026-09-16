@@ -45,7 +45,7 @@ class DefaultAnalysisHistoryServiceTests {
 		when(repositoryRepository.findById(repositoryId)).thenReturn(Optional.of(repository));
 		when(analysisJobRepository.save(any(AnalysisJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		AnalysisJob job = service.requestAnalysis(repositoryId);
+		AnalysisJob job = service.requestAnalysis(repositoryId, false);
 
 		assertThat(job.getStatus()).isEqualTo(AnalysisJobStatus.QUEUED);
 		assertThat(job.getProgressPercentage()).isZero();

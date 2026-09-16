@@ -30,6 +30,7 @@ export type AnalysisJobResponse = {
   completedAt: string | null
   retryCount: number
   progressPercentage: number
+  includeHistory: boolean
   failureReason: string | null
 }
 

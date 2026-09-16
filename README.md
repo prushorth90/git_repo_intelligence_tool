@@ -1,6 +1,6 @@
 # Repository Intelligence
 
-Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend uses live backend data for repository listing, creation, details, and analysis-job history while analytical metrics remain mocked. The backend stores repository coordinates, caches repository reads, and queues asynchronous analysis work. It does not yet clone repositories or calculate production analytics.
+Repository Intelligence is a full-stack foundation for measuring the engineering health of GitHub repositories. The frontend uses live backend data for repository listing, creation, details, and analysis-job history while advanced engineering metrics remain mocked. Background workers securely clone repositories and persist baseline source-tree analytics asynchronously.
 
 ## Architecture
 
@@ -89,6 +89,7 @@ Configuration is externalized through environment variables. Defaults are suitab
 | `API_PORT` | `8080` | API |
 | `ANALYSIS_MAX_RETRIES` | `3` | Worker |
 | `ANALYSIS_STALE_AFTER_SECONDS` | `120` | Worker lease recovery |
+| `ANALYSIS_TEMP_DIRECTORY` | system temp directory | Ephemeral worker checkouts |
 
 `POSTGRES_PORT`, `REDIS_PORT`, and `FRONTEND_PORT` control Docker host port mappings and default to `5432`, `6379`, and `5173`.
 
@@ -130,7 +131,11 @@ docker compose -f docker/compose.yml config --quiet
 
 HTTP requests only persist `AnalysisJob` records and publish IDs after the database transaction commits. Workers atomically move Redis messages from `analysis:pending` to `analysis:processing`, then claim the PostgreSQL row with a compare-and-set update. This allows multiple replicas to consume concurrently without processing the same job twice.
 
-Jobs move through `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, or `CANCELLED` and retain request/start/completion timestamps, retry count, failure reason, progress percentage, heartbeat, and worker ID. Reconciliation republishes stranded queued rows, while heartbeat lease recovery returns jobs abandoned by crashed workers to the queue. The current workload is a staged placeholder for future repository activity, churn, ownership, complexity, dependency, pull-request, hotspot, and risk analyzers.
+Jobs move through `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, or `CANCELLED` and retain request/start/completion timestamps, retry count, failure reason, progress percentage, heartbeat, and worker ID. Reconciliation republishes stranded queued rows, while heartbeat lease recovery returns jobs abandoned by crashed workers to the queue.
+
+Workers use JGit to clone only HTTPS GitHub URLs into owner-only temporary directories. Source analysis uses a shallow clone (`depth=1`) by default; select **Include Git history** when a future historical metric needs the full repository history. Private-repository credentials are decrypted only inside the worker process and are never written into clone URLs or logs. Temporary checkouts are recursively deleted through `AutoCloseable` cleanup after success, cancellation, or failure.
+
+Baseline analysis persists source file count, relevant text size, language distribution, directory structure (up to four levels), file-extension counts, and whether history was included. It skips symlinks, binary formats/content, oversized files, generated/minified artifacts, lock files, and directories such as `.git`, `node_modules`, `target`, `build`, `dist`, `vendor`, `coverage`, `.next`, virtual environments, IDE metadata, and generated output. Churn, ownership, complexity, dependency, pull-request, hotspot, and risk analyzers remain future phases.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
 

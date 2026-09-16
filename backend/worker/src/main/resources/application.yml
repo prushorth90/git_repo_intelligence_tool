@@ -35,3 +35,6 @@ app:
     recovery-delay-ms: ${ANALYSIS_RECOVERY_DELAY_MS:30000}
     stale-after-seconds: ${ANALYSIS_STALE_AFTER_SECONDS:120}
     reconciliation-delay-ms: ${ANALYSIS_RECONCILIATION_DELAY_MS:30000}
+    temp-directory: ${ANALYSIS_TEMP_DIRECTORY:}
+  github:
+    token-encryption-key: ${GITHUB_TOKEN_ENCRYPTION_KEY:}

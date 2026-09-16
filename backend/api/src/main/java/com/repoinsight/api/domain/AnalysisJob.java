@@ -55,13 +55,21 @@ public class AnalysisJob {
 	@Column(name = "heartbeat_at")
 	private Instant heartbeatAt;
 
+	@Column(name = "include_history", nullable = false)
+	private boolean includeHistory;
+
 	protected AnalysisJob() {
 	}
 
 	public AnalysisJob(Repository repository) {
+		this(repository, false);
+	}
+
+	public AnalysisJob(Repository repository, boolean includeHistory) {
 		this.repository = repository;
 		this.status = AnalysisJobStatus.QUEUED;
 		this.progressPercentage = 0;
+		this.includeHistory = includeHistory;
 		this.requestedAt = Instant.now();
 	}
 
@@ -84,4 +92,5 @@ public class AnalysisJob {
 	public int getProgressPercentage() { return progressPercentage; }
 	public String getWorkerId() { return workerId; }
 	public Instant getHeartbeatAt() { return heartbeatAt; }
+	public boolean isIncludeHistory() { return includeHistory; }
 }

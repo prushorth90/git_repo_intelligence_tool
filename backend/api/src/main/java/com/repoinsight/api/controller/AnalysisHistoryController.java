@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.UUID;
 
 import com.repoinsight.api.dto.analysis.AnalysisJobResponse;
+import com.repoinsight.api.dto.analysis.AnalysisRequest;
 import com.repoinsight.api.service.AnalysisHistoryService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,8 +35,11 @@ public class AnalysisHistoryController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public AnalysisJobResponse requestAnalysis(@PathVariable UUID repositoryId) {
-		return AnalysisJobResponse.from(analysisHistoryService.requestAnalysis(repositoryId));
+	public AnalysisJobResponse requestAnalysis(
+			@PathVariable UUID repositoryId,
+			@RequestBody(required = false) AnalysisRequest request) {
+		boolean includeHistory = request != null && request.includeHistory();
+		return AnalysisJobResponse.from(analysisHistoryService.requestAnalysis(repositoryId, includeHistory));
 	}
 
 	@PostMapping("/{jobId}/cancel")

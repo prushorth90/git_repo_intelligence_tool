@@ -96,10 +96,11 @@ export const repositoryApi = {
     return request<AnalysisJobResponse[]>(`/api/repositories/${repositoryId}/analysis-jobs`, { signal })
   },
 
-  async requestAnalysis(repositoryId: string) {
+  async requestAnalysis(repositoryId: string, includeHistory: boolean) {
     return request<AnalysisJobResponse>(`/api/repositories/${repositoryId}/analysis-jobs`, {
       method: 'POST',
-      headers: await csrfHeaders(),
+      headers: { 'Content-Type': 'application/json', ...await csrfHeaders() },
+      body: JSON.stringify({ includeHistory }),
     })
   },
 

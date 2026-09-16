@@ -37,6 +37,7 @@ export function AnalysisHistoryPage() {
   const [reloadToken, setReloadToken] = useState(0)
   const [commandState, setCommandState] = useState<'idle' | 'submitting' | 'error'>('idle')
   const [commandError, setCommandError] = useState('')
+  const [includeHistory, setIncludeHistory] = useState(false)
 
   useEffect(() => {
     if (!repository) return
@@ -82,7 +83,7 @@ export function AnalysisHistoryPage() {
     setCommandState('submitting')
     setCommandError('')
     try {
-      const job = await repositoryApi.requestAnalysis(repository.id)
+      const job = await repositoryApi.requestAnalysis(repository.id, includeHistory)
       setResult((current) => ({ ...current, jobs: [job, ...current.jobs] }))
       setCommandState('idle')
       setReloadToken((value) => value + 1)
@@ -108,6 +109,7 @@ export function AnalysisHistoryPage() {
     { key: 'id', header: 'Job', render: (row) => <span className="code-path">{row.id.slice(0, 8)}</span> },
     { key: 'requested', header: 'Requested', render: (row) => new Date(row.requestedAt).toLocaleString() },
     { key: 'progress', header: 'Progress', render: (row) => <div className="job-progress"><div><i style={{ width: `${row.progressPercentage}%` }} /></div><span>{row.progressPercentage}%</span></div> },
+    { key: 'mode', header: 'Mode', render: (row) => row.includeHistory ? 'Full history' : 'Shallow' },
     { key: 'retries', header: 'Retries', align: 'right', render: (row) => row.retryCount },
     { key: 'duration', header: 'Duration', align: 'right', render: formatDuration },
     { key: 'status', header: 'Status', align: 'right', render: (row) => <StatusBadge tone={statusTone(row.status)}>{row.status}</StatusBadge> },
@@ -120,7 +122,7 @@ export function AnalysisHistoryPage() {
         eyebrow={`${repository.name} / Runs`}
         title="Analysis history"
         description="Queue asynchronous repository analysis and monitor worker progress."
-        action={<button className="primary-button" disabled={Boolean(activeJob) || commandState === 'submitting'} onClick={() => void requestAnalysis()} type="button"><Play size={15} />{commandState === 'submitting' ? 'Queueing...' : activeJob ? 'Analysis active' : 'Analyze Repository'}</button>}
+        action={<div className="analysis-action"><label><input checked={includeHistory} disabled={Boolean(activeJob)} onChange={(event) => setIncludeHistory(event.target.checked)} type="checkbox" /><span>Include Git history</span></label><button className="primary-button" disabled={Boolean(activeJob) || commandState === 'submitting'} onClick={() => void requestAnalysis()} type="button"><Play size={15} />{commandState === 'submitting' ? 'Queueing...' : activeJob ? 'Analysis active' : 'Analyze Repository'}</button></div>}
       />
       {commandError && <p className="command-error" role="alert">{commandError}</p>}
       <section className="metrics-grid metrics-grid--three">

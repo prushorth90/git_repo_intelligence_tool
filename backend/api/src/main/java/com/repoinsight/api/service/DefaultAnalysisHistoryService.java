@@ -42,14 +42,14 @@ public class DefaultAnalysisHistoryService implements AnalysisHistoryService {
 
 	@Override
 	@Transactional
-	public AnalysisJob requestAnalysis(UUID repositoryId) {
+	public AnalysisJob requestAnalysis(UUID repositoryId, boolean includeHistory) {
 		var repository = repositoryRepository.findById(repositoryId)
 				.orElseThrow(() -> new RepositoryNotFoundException(repositoryId));
 		if (analysisJobRepository.existsByRepositoryIdAndStatusIn(
 				repositoryId, List.of(AnalysisJobStatus.QUEUED, AnalysisJobStatus.RUNNING))) {
 			throw new AnalysisJobAlreadyActiveException();
 		}
-		AnalysisJob job = analysisJobRepository.save(new AnalysisJob(repository));
+		AnalysisJob job = analysisJobRepository.save(new AnalysisJob(repository, includeHistory));
 		analysisJobQueue.enqueue(job.getId());
 		return job;
 	}

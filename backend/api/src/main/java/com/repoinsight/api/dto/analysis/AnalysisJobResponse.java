@@ -15,6 +15,7 @@ public record AnalysisJobResponse(
 		Instant completedAt,
 		int retryCount,
 		int progressPercentage,
+		boolean includeHistory,
 		String failureReason) {
 
 	public static AnalysisJobResponse from(AnalysisJob job) {
@@ -27,6 +28,7 @@ public record AnalysisJobResponse(
 				job.getCompletedAt(),
 				job.getRetryCount(),
 				job.getProgressPercentage(),
+				job.isIncludeHistory(),
 				job.getFailureReason());
 	}
 }
