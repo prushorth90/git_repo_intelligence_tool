@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -40,6 +41,8 @@ public class GitHistoryAnalyzer {
 	private static final double TOUCH_WEIGHT = 0.30;
 	private static final double RECENCY_WEIGHT = 0.20;
 	private static final double CONCENTRATION_THRESHOLD = 70.0;
+	private static final Pattern BUG_FIX_MESSAGE = Pattern.compile(
+			"(?i)\\b(?:bug(?:fix)?|defect|fix(?:e[ds])?|hotfix|patch|regression|resolve[ds]?)\\b");
 
 	public GitHistoryAnalysisResult analyze(Path checkout, UUID jobId, Predicate<UUID> cancelled) {
 		Instant now = Instant.now();
@@ -57,6 +60,7 @@ public class GitHistoryAnalyzer {
 				Instant committedAt = commit.getAuthorIdent().getWhenAsInstant();
 				List<HistoryPeriod> periods = periodsFor(committedAt, now);
 				ContributorIdentity contributor = contributor(commit);
+				boolean bugFix = BUG_FIX_MESSAGE.matcher(commit.getFullMessage()).find();
 				for (DiffEntry diff : formatter.scan(parentTree(repository, commit), tree(repository, commit))) {
 					String path = diff.getChangeType() == DiffEntry.ChangeType.DELETE ? diff.getOldPath() : diff.getNewPath();
 					if (!SourceTreeAnalyzer.isRelevantSourcePath(path)) continue;
@@ -71,7 +75,7 @@ public class GitHistoryAnalyzer {
 					double recency = recencyWeight(committedAt, now);
 					for (HistoryPeriod period : periods) {
 						metrics.get(period).computeIfAbsent(path, MutableFileMetric::new)
-								.add(additions, deletions, contributor, committedAt, recency);
+								.add(additions, deletions, contributor, committedAt, recency, bugFix);
 					}
 					contributors.computeIfAbsent(contributor.key(), key -> new MutableContributor(contributor))
 							.add(path, commit.getName(), additions, deletions, committedAt);
@@ -196,16 +200,19 @@ public class GitHistoryAnalyzer {
 		private int commits;
 		private int additions;
 		private int deletions;
+		private int bugFixCommits;
 		private Instant lastModifiedAt;
 
 		private MutableFileMetric(String path) {
 			this.path = path;
 		}
 
-		private void add(int added, int removed, ContributorIdentity contributor, Instant committedAt, double recency) {
+		private void add(int added, int removed, ContributorIdentity contributor, Instant committedAt, double recency,
+				boolean bugFix) {
 			commits++;
 			additions += added;
 			deletions += removed;
+			if (bugFix) bugFixCommits++;
 			contributors.computeIfAbsent(contributor.key(), key -> new ContributorActivity(contributor))
 					.add(added, removed, committedAt, recency);
 			if (lastModifiedAt == null || committedAt.isAfter(lastModifiedAt)) lastModifiedAt = committedAt;
@@ -240,7 +247,7 @@ public class GitHistoryAnalyzer {
 			}
 			OwnershipShare top = shares.isEmpty() ? null : shares.get(0);
 			return new FileHistoryMetric(path, SourceTreeAnalyzer.languageForPath(path), commits,
-					additions, deletions, contributors.size(), lastModifiedAt,
+					additions, deletions, contributors.size(), bugFixCommits, lastModifiedAt,
 					top == null ? null : top.contributor().name(), top == null ? 0 : top.percent(),
 					busFactor, top != null && top.percent() >= CONCENTRATION_THRESHOLD);
 		}

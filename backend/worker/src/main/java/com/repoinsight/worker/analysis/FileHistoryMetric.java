@@ -9,6 +9,7 @@ public record FileHistoryMetric(
 		int additions,
 		int deletions,
 		int uniqueContributors,
+		int bugFixCommitCount,
 		Instant lastModifiedAt,
 		String topContributorName,
 		double topOwnershipPercent,

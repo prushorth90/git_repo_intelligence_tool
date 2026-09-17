@@ -21,6 +21,7 @@ public class AnalysisWorkload {
 	private final SourceTreeAnalyzer sourceTreeAnalyzer;
 	private final StructuralSourceAnalyzer structuralSourceAnalyzer;
 	private final GitHistoryAnalyzer gitHistoryAnalyzer;
+	private final RepositoryHotspotAnalyzer hotspotAnalyzer;
 	private final WorkerAccessTokenCipher tokenCipher;
 	private final ObjectMapper objectMapper;
 
@@ -30,6 +31,7 @@ public class AnalysisWorkload {
 			SourceTreeAnalyzer sourceTreeAnalyzer,
 			StructuralSourceAnalyzer structuralSourceAnalyzer,
 			GitHistoryAnalyzer gitHistoryAnalyzer,
+			RepositoryHotspotAnalyzer hotspotAnalyzer,
 			WorkerAccessTokenCipher tokenCipher,
 			ObjectMapper objectMapper) {
 		this.jdbcTemplate = jdbcTemplate;
@@ -37,6 +39,7 @@ public class AnalysisWorkload {
 		this.sourceTreeAnalyzer = sourceTreeAnalyzer;
 		this.structuralSourceAnalyzer = structuralSourceAnalyzer;
 		this.gitHistoryAnalyzer = gitHistoryAnalyzer;
+		this.hotspotAnalyzer = hotspotAnalyzer;
 		this.tokenCipher = tokenCipher;
 		this.objectMapper = objectMapper;
 	}
@@ -61,11 +64,13 @@ public class AnalysisWorkload {
 			GitHistoryAnalysisResult history = context.includeHistory()
 					? gitHistoryAnalyzer.analyze(checkout.directory(), jobId, cancelled)
 					: GitHistoryAnalysisResult.empty();
+			List<FileHotspotMetric> hotspots = hotspotAnalyzer.analyze(structures, history);
 			checkCancelled(jobId, cancelled);
 			progress.accept(jobId, 88);
 			UUID analysisId = persistResult(jobId, context, result);
 			persistStructuralMetrics(analysisId, structures);
 			persistHistoryMetrics(analysisId, history);
+			persistHotspotMetrics(analysisId, hotspots);
 			progress.accept(jobId, 95);
 		}
 	}
@@ -213,6 +218,26 @@ public class AnalysisWorkload {
 		} catch (JacksonException exception) {
 			throw new IllegalStateException("Contributor module serialization failed.", exception);
 		}
+	}
+
+	private void persistHotspotMetrics(UUID analysisId, List<FileHotspotMetric> hotspots) {
+		jdbcTemplate.update("DELETE FROM file_hotspot_metrics WHERE analysis_id = ?", analysisId);
+		List<Object[]> rows = hotspots.stream().map(metric -> new Object[] {
+				UUID.randomUUID(), analysisId, metric.filePath(), metric.language(), metric.churn(), metric.complexity(),
+				metric.contributorConcentration(), metric.bugFixCommits(), metric.dependencyReferences(),
+				metric.recentModifications(), metric.normalizedChurn(), metric.normalizedComplexity(),
+				metric.normalizedContributorConcentration(), metric.normalizedBugFixActivity(),
+				metric.normalizedDependencyImportance(), metric.normalizedModificationFrequency(),
+				metric.riskScore(), metric.riskLevel().name()
+		}).toList();
+		jdbcTemplate.batchUpdate("""
+				INSERT INTO file_hotspot_metrics (
+				    id, analysis_id, file_path, language, churn, complexity, contributor_concentration,
+				    bug_fix_commits, dependency_references, recent_modifications, normalized_churn,
+				    normalized_complexity, normalized_contributor_concentration, normalized_bug_fix_activity,
+				    normalized_dependency_importance, normalized_modification_frequency, risk_score, risk_level)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				""", rows);
 	}
 
 	private void checkCancelled(UUID jobId, Predicate<UUID> cancelled) {

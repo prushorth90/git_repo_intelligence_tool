@@ -29,7 +29,7 @@ class GitHistoryAnalyzerTests {
 			Files.writeString(source.resolve("App.java"), "one\nthree\nfour\n");
 			Path dependency = Files.createDirectories(repositoryDirectory.resolve("node_modules/pkg"));
 			Files.writeString(dependency.resolve("Ignored.java"), "ignored\n");
-			commit(git, "Recent source", "Bob", "bob@example.com", Instant.now().minus(10, ChronoUnit.DAYS));
+			commit(git, "Fix response regression", "Bob", "bob@example.com", Instant.now().minus(10, ChronoUnit.DAYS));
 		}
 
 		GitHistoryAnalysisResult result = new GitHistoryAnalyzer().analyze(
@@ -41,6 +41,7 @@ class GitHistoryAnalyzerTests {
 			assertThat(metric.additions()).isEqualTo(4);
 			assertThat(metric.deletions()).isEqualTo(1);
 			assertThat(metric.uniqueContributors()).isEqualTo(2);
+			assertThat(metric.bugFixCommitCount()).isEqualTo(1);
 			assertThat(metric.totalChurn()).isEqualTo(5);
 			assertThat(metric.topContributorName()).isEqualTo("Bob");
 			assertThat(metric.topOwnershipPercent()).isBetween(60.0, 62.0);
@@ -52,6 +53,7 @@ class GitHistoryAnalyzerTests {
 			assertThat(metric.additions()).isEqualTo(2);
 			assertThat(metric.deletions()).isEqualTo(1);
 			assertThat(metric.uniqueContributors()).isEqualTo(1);
+			assertThat(metric.bugFixCommitCount()).isEqualTo(1);
 			assertThat(metric.lastModifiedAt()).isAfter(Instant.now().minus(30, ChronoUnit.DAYS));
 			assertThat(metric.topOwnershipPercent()).isEqualTo(100.0);
 			assertThat(metric.concentratedOwnership()).isTrue();

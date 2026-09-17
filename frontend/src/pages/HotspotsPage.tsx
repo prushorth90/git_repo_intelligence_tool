@@ -1,9 +1,7 @@
-import { Flame, GitCommitHorizontal, ShieldAlert } from 'lucide-react'
+import { Activity, Flame, ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { repositoryApi } from '../api/client'
-import type { CodeChurnRankingResponse, FileChurnResponse, HistoryPeriod } from '../api/types'
-import { ChartPanel } from '../components/ChartPanel'
+import type { FileHotspotResponse, HotspotOverviewResponse } from '../api/types'
 import { DataTable } from '../components/DataTable'
 import type { TableColumn } from '../components/DataTable'
 import { MetricCard } from '../components/MetricCard'
@@ -11,99 +9,68 @@ import { PageHeader } from '../components/PageHeader'
 import { WorkspaceState } from '../components/WorkspaceState'
 import { useRepository } from '../context/RepositoryContext'
 
-const periods: Array<{ value: HistoryPeriod; label: string }> = [
-  { value: 'DAYS_30', label: '30 days' },
-  { value: 'DAYS_90', label: '90 days' },
-  { value: 'MONTHS_6', label: '6 months' },
-  { value: 'ALL', label: 'All time' },
+const columns: TableColumn<FileHotspotResponse>[] = [
+  { key: 'file', header: 'File', render: (row) => <div className="hotspot-file"><span className="code-path" title={row.filePath}>{row.filePath}</span><small>{row.language}</small></div> },
+  { key: 'risk', header: 'Risk', render: (row) => <span className={`risk-badge risk-badge--${row.riskLevel.toLowerCase()}`}>{row.riskLevel}</span> },
+  { key: 'score', header: 'Score', align: 'right', render: (row) => <div className="risk-score"><strong>{row.riskScore.toFixed(1)}</strong><span><i style={{ width: `${row.riskScore}%` }} /></span></div> },
+  { key: 'reasons', header: 'Why this score', render: (row) => <ul className="risk-reasons">{row.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> },
+  { key: 'factors', header: 'Factor points', render: (row) => <div className="factor-points">{row.factors.map((factor) => <span key={factor.key} title={`${factor.explanation}; normalized ${factor.normalizedValue.toFixed(3)}; weight ${(factor.weight * 100).toFixed(0)}%`}><b>{factor.label}</b>{factor.contribution.toFixed(1)}</span>)}</div> },
 ]
 
-const columns: TableColumn<FileChurnResponse>[] = [
-  { key: 'path', header: 'File path', render: (row) => <span className="code-path">{row.filePath}</span> },
-  { key: 'language', header: 'Language', render: (row) => row.language },
-  { key: 'commits', header: 'Commits', align: 'right', render: (row) => row.commitCount },
-  { key: 'additions', header: 'Added', align: 'right', render: (row) => `+${row.additions.toLocaleString()}` },
-  { key: 'deletions', header: 'Removed', align: 'right', render: (row) => `-${row.deletions.toLocaleString()}` },
-  { key: 'contributors', header: 'Contributors', align: 'right', render: (row) => row.uniqueContributors },
-  { key: 'modified', header: 'Last modified', render: (row) => new Date(row.lastModifiedAt).toLocaleDateString() },
-  { key: 'churn', header: 'Total churn', align: 'right', render: (row) => <strong className="score-cell">{row.totalChurn.toLocaleString()}</strong> },
-]
-
-type ChurnResult = {
+type HotspotResult = {
   repositoryId: string
-  period: HistoryPeriod
   state: 'loading' | 'success' | 'error'
-  data: CodeChurnRankingResponse | null
+  data: HotspotOverviewResponse | null
   error: string
 }
 
 export function HotspotsPage() {
   const { repository } = useRepository()
-  const [period, setPeriod] = useState<HistoryPeriod>('DAYS_90')
   const [reloadToken, setReloadToken] = useState(0)
-  const [result, setResult] = useState<ChurnResult>({ repositoryId: '', period, state: 'loading', data: null, error: '' })
+  const [result, setResult] = useState<HotspotResult>({ repositoryId: '', state: 'loading', data: null, error: '' })
 
   useEffect(() => {
     if (!repository) return
     const controller = new AbortController()
-    repositoryApi.codeChurn(repository.id, period, controller.signal)
-      .then((data) => setResult({ repositoryId: repository.id, period, state: 'success', data, error: '' }))
+    repositoryApi.hotspots(repository.id, controller.signal)
+      .then((data) => setResult({ repositoryId: repository.id, state: 'success', data, error: '' }))
       .catch((requestError: unknown) => {
         if (requestError instanceof DOMException && requestError.name === 'AbortError') return
-        setResult({
-          repositoryId: repository.id,
-          period,
-          state: 'error',
-          data: null,
-          error: requestError instanceof Error ? requestError.message : 'Code churn rankings could not be loaded.',
-        })
+        setResult({ repositoryId: repository.id, state: 'error', data: null, error: requestError instanceof Error ? requestError.message : 'Risk rankings could not be loaded.' })
       })
     return () => controller.abort()
-  }, [repository, period, reloadToken])
+  }, [repository, reloadToken])
 
   if (!repository) return null
-  const current = result.repositoryId === repository.id && result.period === period
-    ? result
-    : { ...result, state: 'loading' as const, data: null }
-  const files = current.data?.files ?? []
-  const totalChurn = files.reduce((sum, file) => sum + file.totalChurn, 0)
-  const totalCommits = files.reduce((sum, file) => sum + file.commitCount, 0)
+  const current = result.repositoryId === repository.id ? result : { ...result, state: 'loading' as const, data: null }
+  if (current.state === 'loading') return <WorkspaceState state="loading" />
+  if (current.state === 'error') return <WorkspaceState message={current.error} onRetry={() => { setResult({ repositoryId: repository.id, state: 'loading', data: null, error: '' }); setReloadToken((value) => value + 1) }} state="error" />
+
+  const data = current.data ?? { analysisId: null, analyzedAt: null, formula: '', normalization: '', thresholds: '', files: [] }
+  const criticalFiles = data.files.filter((file) => file.riskLevel === 'CRITICAL').length
+  const elevatedFiles = data.files.filter((file) => file.riskLevel === 'CRITICAL' || file.riskLevel === 'HIGH').length
+  const averageRisk = data.files.length === 0 ? 0 : data.files.reduce((sum, file) => sum + file.riskScore, 0) / data.files.length
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow={`${repository.name} / History`} title="Code hotspots" description="Files ranked by additions and removals across Git history." action={<div className="period-control">{periods.map((option) => <button className={period === option.value ? 'active' : ''} key={option.value} onClick={() => setPeriod(option.value)} type="button">{option.label}</button>)}</div>} />
+      <PageHeader eyebrow={`${repository.name} / Risk`} title="Repository hotspots" description="Files ranked by normalized engineering risk signals from source structure and Git history." />
 
-      {current.state === 'error' && <WorkspaceState message={current.error} onRetry={() => { setResult({ repositoryId: repository.id, period, state: 'loading', data: null, error: '' }); setReloadToken((value) => value + 1) }} state="error" />}
-      {current.state === 'loading' && <WorkspaceState state="loading" />}
-      {current.state === 'success' && (
-        <>
-          <section className="metrics-grid metrics-grid--three">
-            <MetricCard icon={ShieldAlert} label="Files ranked" value={files.length.toString()} detail="Top 100 by total churn" />
-            <MetricCard icon={Flame} label="Total churn" value={totalChurn.toLocaleString()} detail="Added plus removed lines" tone="warning" />
-            <MetricCard icon={GitCommitHorizontal} label="File touches" value={totalCommits.toLocaleString()} detail="Commit-to-file modifications" />
-          </section>
+      <section className="metrics-grid metrics-grid--three">
+        <MetricCard icon={ShieldAlert} label="Critical files" value={criticalFiles.toString()} detail="Scores of 75 or higher" tone={criticalFiles > 0 ? 'warning' : 'default'} />
+        <MetricCard icon={Flame} label="High-risk files" value={elevatedFiles.toString()} detail="High and critical classifications" tone={elevatedFiles > 0 ? 'warning' : 'default'} />
+        <MetricCard icon={Activity} label="Average risk" value={averageRisk.toFixed(1)} detail={`${data.files.length} files ranked`} />
+      </section>
 
-          {files.length === 0 ? (
-            <section className="hotspot-empty"><Flame size={22} /><h2>No history metrics yet</h2><p>Run an analysis with <strong>Include Git history</strong> enabled, then return to this page.</p></section>
-          ) : (
-            <>
-              <ChartPanel title="Highest churn files" description={`Top files for ${periods.find((option) => option.value === period)?.label.toLowerCase()}`}>
-                <div className="chart-container chart-container--large">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={files.slice(0, 10)} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 18 }}>
-                      <CartesianGrid horizontal={false} stroke="#e3e5df" strokeDasharray="3 3" />
-                      <XAxis type="number" tick={{ fill: '#737d76', fontSize: 11 }} />
-                      <YAxis dataKey="filePath" type="category" width={170} tick={{ fill: '#47514b', fontSize: 9 }} tickFormatter={(value: string) => value.split('/').pop() ?? value} />
-                      <Tooltip contentStyle={{ border: '1px solid #d8dbd4', borderRadius: 0, fontSize: 12 }} />
-                      <Bar dataKey="totalChurn" fill="#ed5b35" radius={[0, 2, 2, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </ChartPanel>
-              <section className="table-panel"><div className="panel-header"><div><h2>Churn ranking</h2><p>{current.data?.analyzedAt ? `Analyzed ${new Date(current.data.analyzedAt).toLocaleString()}` : 'Latest history analysis'}</p></div></div><DataTable columns={columns} getRowKey={(row) => row.filePath} rows={files} /></section>
-            </>
-          )}
-        </>
+      <section className="hotspot-model">
+        <div><span className="eyebrow">Deterministic model</span><h2>{data.formula}</h2></div>
+        <div><strong>Normalization</strong><p>{data.normalization}</p></div>
+        <div><strong>Risk bands</strong><p>{data.thresholds}</p></div>
+      </section>
+
+      {data.files.length === 0 ? (
+        <section className="hotspot-empty"><Flame size={22} /><h2>No hotspot scores yet</h2><p>Run an analysis with <strong>Include Git history</strong> enabled to calculate repository risk.</p></section>
+      ) : (
+        <section className="table-panel hotspot-ranking"><div className="panel-header"><div><h2>Highest-risk files</h2><p>{data.analyzedAt ? `Analyzed ${new Date(data.analyzedAt).toLocaleString()}` : 'Latest history-enabled analysis'}</p></div><span className="panel-note">Hover factor points for raw and normalized values</span></div><DataTable columns={columns} getRowKey={(row) => row.filePath} rows={data.files} /></section>
       )}
     </div>
   )

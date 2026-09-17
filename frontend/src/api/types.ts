@@ -86,6 +86,36 @@ export type CodeChurnRankingResponse = {
   files: FileChurnResponse[]
 }
 
+export type HotspotRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export type HotspotFactorResponse = {
+  key: string
+  label: string
+  rawValue: number
+  normalizedValue: number
+  weight: number
+  contribution: number
+  explanation: string
+}
+
+export type FileHotspotResponse = {
+  filePath: string
+  language: string
+  riskScore: number
+  riskLevel: HotspotRiskLevel
+  factors: HotspotFactorResponse[]
+  reasons: string[]
+}
+
+export type HotspotOverviewResponse = {
+  analysisId: string | null
+  analyzedAt: string | null
+  formula: string
+  normalization: string
+  thresholds: string
+  files: FileHotspotResponse[]
+}
+
 export type ContributorOwnershipResponse = {
   contributorKey: string
   displayName: string

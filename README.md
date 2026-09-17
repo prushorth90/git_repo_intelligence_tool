@@ -108,6 +108,7 @@ Do not commit `.env`; it is ignored by Git. A GitHub token is intentionally not 
 | `POST` | `/api/repositories/{id}/analysis-jobs` | Persist a queued job and publish it to Redis. |
 | `POST` | `/api/repositories/{id}/analysis-jobs/{jobId}/cancel` | Cancel a queued or running job. |
 | `GET` | `/api/repositories/{id}/code-churn?period=DAYS_90` | Rank files by churn for `DAYS_30`, `DAYS_90`, `MONTHS_6`, or `ALL`. |
+| `GET` | `/api/repositories/{id}/hotspots` | Return composite file-risk rankings with normalized factors and explanations. |
 | `GET` | `/api/repositories/{id}/contributors` | Return weighted contributor ownership, modules, bus factor, and concentrated files. |
 | `GET` | `/api/repositories/{id}/complexity` | Return the latest top 100 file and callable complexity rankings with scoring rules. |
 | `GET` | `/api/auth/github/start` | Start the server-managed GitHub OAuth flow. |
@@ -149,6 +150,29 @@ When **Include Git history** is selected, the worker traverses commits once with
 Contributor ownership is calculated per file from 50% line-churn share, 30% file-touch share, and 20% recency-weighted activity share. This prevents raw commit count from dominating ownership estimates. Contributor repository ownership is the file-churn-weighted average of those per-file shares. The first path segment is treated as the logical module, and each contributor's three highest weighted modules are retained.
 
 A file has concentrated ownership when its top contributor owns at least 70% of weighted changes. File bus factor is the minimum number of contributors whose cumulative ownership reaches 50%; repository bus factor applies the same rule to contributor repository ownership. The Contributors page displays total unique commits, files touched, lines changed, recent activity, estimated ownership, primary modules, and concentrated-file alerts.
+
+## Hotspot Risk Scoring
+
+History-enabled analyses calculate one deterministic score per current, successfully parsed source file. Flyway V11 stores every raw input, normalized factor, final score, and risk classification in `file_hotspot_metrics`; scores are not recomputed when read.
+
+Count-like values are normalized within the repository analysis using `log1p(value) / log1p(maximum value)`, producing values from 0 to 1 while reducing outlier dominance. Complexity normalizes decision points above the cyclomatic baseline (`complexity - 1`), so a branch-free file contributes no complexity risk. Contributor concentration is already bounded and uses `top owner percentage / 100`. A missing or zero-valued factor normalizes to zero.
+
+The 0-100 score is:
+
+```text
+100 × (
+    0.25 × normalized all-time churn
+    + 0.20 × normalized cyclomatic complexity
+    + 0.15 × normalized contributor concentration
+    + 0.20 × normalized 90-day bug-fix commits
+    + 0.10 × normalized inbound dependency references
+    + 0.10 × normalized 90-day modification count
+)
+```
+
+Bug-fix commits are identified case-insensitively from commit messages using the whole-word terms `bug`, `bugfix`, `defect`, `fix`, `fixed`, `fixes`, `hotfix`, `patch`, `regression`, `resolve`, `resolved`, and `resolves`. Dependency importance is an explainable approximation: the worker counts distinct current repository files whose Tree-sitter import declarations resolve to a path suffix or an unambiguous filename. External dependencies are not counted.
+
+Scores are classified as `LOW` below 25, `MEDIUM` from 25 to below 50, `HIGH` from 50 to below 75, and `CRITICAL` from 75 through 100. The Code Hotspots page displays the top 100 files, all six weighted point contributions, and the three largest reasons for each score.
 
 The API follows package-by-layer boundaries under `com.repoinsight.api`: `controller`, `dto`, `service`, `repository`, `domain`, `configuration`, and `infrastructure`. Service interfaces isolate web controllers and Redis adapters from persistence details.
 
